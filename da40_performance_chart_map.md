@@ -9,7 +9,7 @@ Source: `DA-40-180 AFM 2023.pdf`, provided as the two large PDFs. They appear to
 | 155 | 5.3.6 Take-Off Distance | Conditions, assumptions, correction notes |
 | 157 | DA-40 Take-Off Distance chart | Takeoff distance graph |
 | 162 | 5.3.10 Landing Distance - Flaps LDG | Landing conditions and notes |
-| 164 | DA-40 Landing Distance - Flaps LDG chart | Landing distance graph |
+| 165 | DA-40 Landing Distance - Flaps LDG chart | Landing distance graph |
 
 ## Takeoff Chart Inputs
 
@@ -62,19 +62,19 @@ Corrections visible from AFM:
 
 Because the DA-40 AFM takeoff and landing charts are graphical, not simple text tables, the first app version should:
 
-1. Let the pilot enter calculated takeoff and landing distances from the AFM chart.
-2. Store runway length for each airport/runway if available.
-3. Compare entered distances against available runway.
-4. Carry pass/fail and any margins into the preflight scorecard.
-
-Later, we can digitize the charts into interpolation tables and automate:
+The app now has a first digitized chart model for KMBT row 1. It automates:
 
 - Pressure altitude
 - Temperature
 - Weight
 - Headwind/tailwind correction
-- Grass/slope corrections
 - Takeoff ground roll
 - Takeoff over 50 ft obstacle
 - Landing ground roll
 - Landing over 50 ft obstacle
+
+Still manual/future:
+
+- Grass/slope/wet runway corrections
+- Additional airport runway-condition inputs
+- Additional validation against hand-calculated AFM examples

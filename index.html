@@ -237,7 +237,7 @@
           <h2>Takeoff and Landing Distance</h2>
           <div class="compact-grid" style="margin-bottom:10px">
             <label>KMBT Runway<select data-preflight="selectedRunway"><option value="18">18</option><option value="36">36</option></select></label>
-            <label>Runway Heading<input data-preflight="runwayHeading" type="number" step="1" readonly placeholder="deg"></label>
+            <label>Runway Heading<input data-preflight="runwayHeading" type="text" readonly placeholder="deg"></label>
             <label>Headwind<input data-preflight="headwindComponent" type="number" step="0.1" readonly placeholder="kt"></label>
             <label>Crosswind<input data-preflight="computedCrosswind" type="number" step="0.1" readonly placeholder="kt"></label>
             <label>OAT<input data-preflight="performanceTemp" type="number" step="1" readonly placeholder="C"></label>
@@ -252,12 +252,12 @@
           <table class="mini-table" aria-label="Takeoff and landing distance checks">
             <thead><tr><th>Airport</th><th>TO Avail.</th><th>LDG Avail.</th><th>TO Ground</th><th>TO 50 ft</th><th>LDG Ground</th><th>LDG 50 ft</th><th>Margin</th></tr></thead>
             <tbody>
-              <tr><td><input data-preflight="perfAirport1" type="text" placeholder="KMBT"></td><td><input data-preflight="runway1" type="number" min="0" step="1" readonly></td><td><input data-preflight="runwayLdg1" type="number" min="0" step="1" readonly></td><td><input data-preflight="toGround1" type="number" min="0" step="1"></td><td><input data-preflight="to50_1" type="number" min="0" step="1"></td><td><input data-preflight="ldgGround1" type="number" min="0" step="1"></td><td><input data-preflight="ldg50_1" type="number" min="0" step="1"></td><td id="margin1">--</td></tr>
+              <tr><td><input data-preflight="perfAirport1" type="text" placeholder="KMBT"></td><td><input data-preflight="runway1" type="number" min="0" step="1" readonly></td><td><input data-preflight="runwayLdg1" type="number" min="0" step="1" readonly></td><td><input data-preflight="toGround1" type="number" min="0" step="1" readonly></td><td><input data-preflight="to50_1" type="number" min="0" step="1" readonly></td><td><input data-preflight="ldgGround1" type="number" min="0" step="1" readonly></td><td><input data-preflight="ldg50_1" type="number" min="0" step="1" readonly></td><td id="margin1">--</td></tr>
               <tr><td><input data-preflight="perfAirport2" type="text"></td><td><input data-preflight="runway2" type="number" min="0" step="1"></td><td><input data-preflight="runwayLdg2" type="number" min="0" step="1"></td><td><input data-preflight="toGround2" type="number" min="0" step="1"></td><td><input data-preflight="to50_2" type="number" min="0" step="1"></td><td><input data-preflight="ldgGround2" type="number" min="0" step="1"></td><td><input data-preflight="ldg50_2" type="number" min="0" step="1"></td><td id="margin2">--</td></tr>
               <tr><td><input data-preflight="perfAirport3" type="text"></td><td><input data-preflight="runway3" type="number" min="0" step="1"></td><td><input data-preflight="runwayLdg3" type="number" min="0" step="1"></td><td><input data-preflight="toGround3" type="number" min="0" step="1"></td><td><input data-preflight="to50_3" type="number" min="0" step="1"></td><td><input data-preflight="ldgGround3" type="number" min="0" step="1"></td><td><input data-preflight="ldg50_3" type="number" min="0" step="1"></td><td id="margin3">--</td></tr>
             </tbody>
           </table>
-          <p class="note">AFM takeoff and landing distances remain manual until the DA-40 chart curves are digitized. Current weather and W&amp;B now fill the planning inputs above.</p>
+          <p class="note">Row 1 uses digitized DA-40 AFM chart estimates with conservative rounding. Verify against the AFM chart before release.</p>
         </div>
 
         <div class="preflight-panel full">
@@ -288,8 +288,29 @@
     const SUPABASE_KEY = "sb_publishable_PVrmLMvPXph1qA9I-fvqpA_7ss9zJnK";
     const WEATHER_PROXY_URL = "https://cxcwclznzimisklucivy.functions.supabase.co/kmbt-weather";
     const kmbtRunways = {
-      "18": { heading: 182, takeoffAvailable: 4753, landingAvailable: 4753 },
-      "36": { heading: 2, takeoffAvailable: 4753, landingAvailable: 4453 }
+      "18": { heading: 184, headingDisplay: "184", takeoffAvailable: 4753, landingAvailable: 4753 },
+      "36": { heading: 4, headingDisplay: "004", takeoffAvailable: 4753, landingAvailable: 4453 }
+    };
+    const da40PerformanceModel = {
+      tempsC: [-20, 0, 20, 40, 50],
+      pressureAltitudesFt: [0, 2000, 4000, 6000, 8000, 10000],
+      maxWeightLb: 2646,
+      takeoffGroundRollM: [
+        [205, 250, 310, 375, 425],
+        [280, 335, 405, 500, 560],
+        [355, 430, 535, 660, 760],
+        [450, 560, 720, 930, 1080],
+        [590, 780, 1030, 1320, 1500],
+        [830, 1120, 1450, 1780, 2000]
+      ],
+      landingGroundRollM: [
+        [215, 230, 255, 285, 305],
+        [240, 255, 285, 320, 345],
+        [270, 290, 325, 370, 405],
+        [305, 335, 380, 445, 490],
+        [355, 395, 455, 540, 600],
+        [425, 480, 570, 680, 760]
+      ]
     };
     const fallbackAircraftIndex = {
       N607MT: { emptyWeight: 1814.00, emptyArm: 96.97, emptyMoment: 175903.58, extendedBaggage: true, modification: "Extended Baggage" },
@@ -702,14 +723,90 @@
     function angleDifference(degreesA, degreesB) {
       return Math.abs(((degreesA - degreesB + 540) % 360) - 180);
     }
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+    function interpolateAxis(axis, value) {
+      const clamped = clamp(value, axis[0], axis[axis.length - 1]);
+      for (let i = 0; i < axis.length - 1; i++) {
+        if (clamped <= axis[i + 1]) {
+          const ratio = (clamped - axis[i]) / (axis[i + 1] - axis[i]);
+          return { low: i, high: i + 1, ratio };
+        }
+      }
+      return { low: axis.length - 2, high: axis.length - 1, ratio: 1 };
+    }
+    function interpolatePerformanceTable(table, tempC, pressureAltitudeFt) {
+      const temp = interpolateAxis(da40PerformanceModel.tempsC, tempC);
+      const altitude = interpolateAxis(da40PerformanceModel.pressureAltitudesFt, pressureAltitudeFt);
+      const lowLow = table[altitude.low][temp.low];
+      const lowHigh = table[altitude.low][temp.high];
+      const highLow = table[altitude.high][temp.low];
+      const highHigh = table[altitude.high][temp.high];
+      const low = lowLow + (lowHigh - lowLow) * temp.ratio;
+      const high = highLow + (highHigh - highLow) * temp.ratio;
+      return low + (high - low) * altitude.ratio;
+    }
+    function takeoffWindFactor(headwindKt) {
+      if (!Number.isFinite(headwindKt)) return null;
+      if (headwindKt >= 0) return clamp(1 - 0.10 * (headwindKt / 10), 0.65, 1);
+      return 1 + 0.10 * (Math.abs(headwindKt) / 2);
+    }
+    function landingWindFactor(headwindKt) {
+      if (!Number.isFinite(headwindKt)) return null;
+      if (headwindKt >= 0) return clamp(1 - 0.06 * (headwindKt / 10), 0.8, 1);
+      return 1 + 0.10 * (Math.abs(headwindKt) / 2);
+    }
+    function roundedFeetFromMeters(meters) {
+      return Math.ceil(meters * 3.28084 / 10) * 10;
+    }
+    function estimateDa40Performance(tempC, pressureAltitudeFt, takeoffWeightLb, landingWeightLb, headwindKt) {
+      const model = da40PerformanceModel;
+      const takeoffWeight = clamp(takeoffWeightLb, 1900, model.maxWeightLb);
+      const landingWeight = clamp(landingWeightLb, 1900, model.maxWeightLb);
+      const takeoffBase = interpolatePerformanceTable(model.takeoffGroundRollM, tempC, pressureAltitudeFt);
+      const landingBase = interpolatePerformanceTable(model.landingGroundRollM, tempC, pressureAltitudeFt);
+      const takeoffWeightFactor = Math.pow(takeoffWeight / model.maxWeightLb, 3.8);
+      const landingWeightFactor = Math.pow(landingWeight / model.maxWeightLb, 1.6);
+      const takeoffGroundM = takeoffBase * takeoffWeightFactor * takeoffWindFactor(headwindKt);
+      const landingGroundM = landingBase * landingWeightFactor * landingWindFactor(headwindKt);
+      const takeoff50M = takeoffGroundM * clamp(1.55 + takeoffGroundM / 800, 1.7, 2.25);
+      const landing50M = landingGroundM * clamp(2.0 + landingGroundM / 1400, 2.1, 2.45);
+      const conservativeFactor = 1.05;
+      return {
+        toGround: roundedFeetFromMeters(takeoffGroundM * conservativeFactor),
+        to50: roundedFeetFromMeters(takeoff50M * conservativeFactor),
+        ldgGround: roundedFeetFromMeters(landingGroundM * conservativeFactor),
+        ldg50: roundedFeetFromMeters(landing50M * conservativeFactor)
+      };
+    }
     function clearPreflightValue(name) {
       document.querySelectorAll(`[data-preflight='${name}']`).forEach(el => { el.value = ""; });
+    }
+    function clearAfmPerformanceDistances() {
+      ["toGround1", "to50_1", "ldgGround1", "ldg50_1"].forEach(clearPreflightValue);
+    }
+    function updateAfmPerformanceDistances() {
+      const tempC = optionalValue("performanceTemp");
+      const pressureAltitudeFt = optionalValue("pressureAltitude");
+      const takeoffWeightLb = optionalValue("takeoffWeight");
+      const landingWeightLb = optionalValue("landingWeight") ?? takeoffWeightLb;
+      const headwindKt = optionalValue("headwindComponent");
+      if ([tempC, pressureAltitudeFt, takeoffWeightLb, landingWeightLb, headwindKt].some(value => value === null || !Number.isFinite(value))) {
+        clearAfmPerformanceDistances();
+        return;
+      }
+      const estimate = estimateDa40Performance(tempC, pressureAltitudeFt, takeoffWeightLb, landingWeightLb, headwindKt);
+      setPreflightValue("toGround1", estimate.toGround);
+      setPreflightValue("to50_1", estimate.to50);
+      setPreflightValue("ldgGround1", estimate.ldgGround);
+      setPreflightValue("ldg50_1", estimate.ldg50);
     }
     function updatePerformanceInputs() {
       const selected = document.querySelector("[data-preflight='selectedRunway']")?.value || "18";
       const runway = kmbtRunways[selected] || kmbtRunways["18"];
       setPreflightValue("perfAirport1", "KMBT");
-      setPreflightValue("runwayHeading", runway.heading);
+      setPreflightValue("runwayHeading", runway.headingDisplay);
       setPreflightValue("runway1", runway.takeoffAvailable);
       setPreflightValue("runwayLdg1", runway.landingAvailable);
 
@@ -719,7 +816,7 @@
         if (fuelRequired !== null) {
           setPreflightValue("landingWeight", weightBalanceResult.takeoffWeight - fuelRequired, 1);
         } else {
-          clearPreflightValue("landingWeight");
+          setPreflightValue("landingWeight", weightBalanceResult.takeoffWeight, 1);
         }
       } else {
         clearPreflightValue("takeoffWeight");
@@ -728,10 +825,10 @@
 
       const windDirection = optionalValue("windDirection");
       const windSpeed = optionalValue("windCurrent");
-      if (windDirection !== null && windSpeed !== null) {
-        const diffRadians = angleDifference(windDirection, runway.heading) * Math.PI / 180;
-        const headwind = windSpeed * Math.cos(diffRadians);
-        const crosswind = Math.abs(windSpeed * Math.sin(diffRadians));
+      if (windSpeed !== null) {
+        const diffRadians = windDirection !== null ? angleDifference(windDirection, runway.heading) * Math.PI / 180 : null;
+        const headwind = diffRadians === null ? 0 : windSpeed * Math.cos(diffRadians);
+        const crosswind = diffRadians === null ? windSpeed : Math.abs(windSpeed * Math.sin(diffRadians));
         setPreflightValue("headwindComponent", headwind, 1);
         setPreflightValue("computedCrosswind", crosswind, 1);
         setPreflightValue("xwindCurrent", crosswind, 1);
@@ -739,6 +836,7 @@
         clearPreflightValue("headwindComponent");
         clearPreflightValue("computedCrosswind");
       }
+      updateAfmPerformanceDistances();
     }
     function calculatePerformance() {
       let rowsWithData = 0;
