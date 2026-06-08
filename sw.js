@@ -1,8 +1,9 @@
-const CACHE_NAME = "da40-weight-balance-v4";
+const CACHE_NAME = "da40-weight-balance-v5";
 const APP_FILES = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./app-logo.svg",
   "./icon-180.png",
   "./icon-512.png"
 ];

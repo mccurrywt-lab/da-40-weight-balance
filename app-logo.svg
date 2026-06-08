@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 170" role="img" aria-labelledby="title">
+  <title id="title">MTSU Aerospace DA-40 Weight and Balance Logo</title>
+  <rect width="260" height="170" rx="28" fill="#ffffff"/>
+  <g transform="skewX(-8)">
+    <text x="24" y="112" font-family="Arial Black, Arial, sans-serif" font-size="86" font-weight="900" fill="#0066b3" stroke="#14212b" stroke-width="8" paint-order="stroke">MT</text>
+  </g>
+  <path d="M122 66 C159 42 201 31 244 28 C203 50 166 80 134 119 Z" fill="#14212b"/>
+  <path d="M145 71 L243 28 L160 84 Z" fill="#ffffff"/>
+  <path d="M142 92 L231 35" stroke="#f2b632" stroke-width="9" stroke-linecap="round"/>
+  <path d="M28 137 H188" stroke="#f2b632" stroke-width="8" stroke-linecap="round"/>
+  <text x="30" y="156" font-family="Arial, sans-serif" font-size="19" font-weight="800" fill="#14212b">AEROSPACE W&amp;B</text>
+</svg>
