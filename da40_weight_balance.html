@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DA-40 Weight and Balance</title>
+  <meta name="theme-color" content="#1f6f78">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="DA-40 W&B">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <style>
+    :root {
+      --ink: #172126;
+      --muted: #5f6b72;
+      --line: #cfd8dc;
+      --panel: #f7faf9;
+      --accent: #1f6f78;
+      --bad: #9b1c1c;
+      --good: #1f6b3a;
+      --warn: #a14a00;
+      --paper: #fff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: var(--ink); background: #e9eeee; }
+    main { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    header { display: flex; justify-content: space-between; gap: 16px; align-items: end; margin-bottom: 18px; }
+    h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: 0; }
+    h2 { margin: 0 0 12px; font-size: 17px; letter-spacing: 0; }
+    .subtitle, .note { color: var(--muted); font-size: 13px; line-height: 1.45; margin: 10px 0 0; }
+    .subtitle { margin: 0; font-size: 14px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    button { border: 1px solid var(--accent); color: #fff; background: var(--accent); border-radius: 6px; padding: 10px 13px; font-weight: 700; cursor: pointer; }
+    button.secondary { background: #fff; color: #164f56; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(330px, 0.65fr); gap: 16px; align-items: start; }
+    section { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    .details { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; font: inherit; color: var(--ink); background: #fff; }
+    input:disabled { background: #edf1f2; color: var(--muted); cursor: not-allowed; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 7px; text-align: right; vertical-align: middle; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; background: var(--panel); }
+    th:first-child, td:first-child { text-align: left; width: 34%; }
+    td input { text-align: right; padding: 7px 8px; }
+    .readonly { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .disabled-row td { color: var(--muted); background: #f4f6f6; }
+    .total-row td { font-weight: 800; background: #f4f8f8; }
+    .formula-note { margin: 0 0 10px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); font-size: 13px; line-height: 1.35; }
+    .aircraft-message { margin: -4px 0 14px; color: var(--muted); font-size: 13px; min-height: 18px; }
+    .status { display: grid; gap: 10px; }
+    .status-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: var(--panel); }
+    .status-card strong { display: block; font-size: 25px; margin-top: 5px; }
+    .ok { color: var(--good); }
+    .bad { color: var(--bad); }
+    .caution { color: var(--warn); }
+    .envelope-wrap { margin-top: 16px; }
+    svg { width: 100%; aspect-ratio: 1.35 / 1; display: block; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .limits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+    .limit-item { border: 1px solid var(--line); border-radius: 6px; padding: 9px; background: #fff; font-size: 13px; }
+    .limit-item span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 2px; }
+    @media (max-width: 880px) {
+      main { padding: 14px; }
+      header { align-items: start; flex-direction: column; }
+      .actions { justify-content: flex-start; }
+      .grid { grid-template-columns: 1fr; }
+      .details { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      table { font-size: 14px; }
+      th, td { padding: 7px 5px; }
+    }
+    @media print {
+      body { background: #fff; }
+      main { max-width: none; padding: 0; }
+      button { display: none; }
+      section { break-inside: avoid; }
+      .grid { grid-template-columns: 1fr 0.72fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Diamond DA-40 Weight and Balance</h1>
+      </div>
+      <div class="actions">
+        <button type="button" id="saveBtn">Save Flight</button>
+        <button type="button" class="secondary" id="resetBtn">Reset Loads</button>
+        <button type="button" class="secondary" onclick="window.print()">Print</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section>
+        <h2>Flight Details</h2>
+        <div class="details">
+          <label>Student<input id="student" type="text" autocomplete="off"></label>
+          <label>Instructor<input id="instructor" type="text" autocomplete="off"></label>
+          <label>Aircraft N<input id="aircraft" type="text" list="aircraftList" autocomplete="off" placeholder="N570MT"></label>
+          <label>Date<input id="date" type="date"></label>
+        </div>
+        <datalist id="aircraftList"></datalist>
+        <p id="aircraftMessage" class="aircraft-message"></p>
+
+        <h2>Loading Worksheet</h2>
+        <table aria-label="Weight and balance loading table">
+          <thead>
+            <tr><th>Station</th><th>Weight</th><th>Arm</th><th>Moment</th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td>Zero Fuel Weight<br><span class="readonly">Empty + seats + baggage</span></td>
+              <td id="zfwWeight"></td><td id="zfwArm"></td><td id="zfwMoment"></td>
+            </tr>
+            <tr>
+              <td>Fuel<br><span class="readonly">Full tanks preset</span></td>
+              <td><input data-field="fuelWeight" type="number" min="0" max="300" step="0.1" value="241.2"></td>
+              <td><span class="readonly" data-field="fuelArm" data-value="103.5">103.5</span></td>
+              <td id="fuelMoment" class="readonly"></td>
+            </tr>
+            <tr class="total-row">
+              <td>Total Weight</td><td id="totalWeight"></td><td id="totalArm"></td><td id="totalMoment"></td>
+            </tr>
+          </tfoot>
+        </table>
+        <p class="note">Moments are calculated as weight x arm. CG is total moment divided by total weight.</p>
+      </section>
+
+      <section>
+        <h2>Result</h2>
+        <div class="status">
+          <div class="status-card">CG<strong id="cgValue">--</strong><div id="cgStatus" class="bad">Enter aircraft loading.</div></div>
+          <div class="status-card">Total Weight<strong id="weightValue">--</strong><div id="weightStatus" class="bad">Enter aircraft loading.</div></div>
+        </div>
+        <div class="envelope-wrap">
+          <h2>CG Envelope</h2>
+          <svg id="chart" viewBox="0 0 560 420" role="img" aria-label="DA-40 CG envelope chart"></svg>
+          <p class="note" id="chartNote">The chart plots zero fuel weight and total weight, with a line showing the fuel-added shift.</p>
+        </div>
+        <div class="limits">
+          <div class="limit-item"><span>Max Takeoff</span>2,646 lb</div>
+          <div class="limit-item"><span>Max Normal Landing</span>2,535 lb</div>
+          <div class="limit-item"><span>Forward CG</span>94.5 in minimum</div>
+          <div class="limit-item"><span>Aft CG</span>102.0 in maximum</div>
+          <div class="limit-item"><span>Standard Baggage</span>66 lb max</div>
+          <div class="limit-item"><span>Fuel Preset</span>241.2 lb full tanks</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const storageKey = "da40-weight-balance-index-v1";
+    const aircraftIndex = {
+      N676US: { emptyWeight: 1779.00, emptyArm: 96.75, emptyMoment: 176301.73, extendedBaggage: true, modification: "Long Range Tank, Extended Baggage" },
+      N1244T: { emptyWeight: 1839.00, emptyArm: 98.20, emptyMoment: 180588.73, extendedBaggage: true, modification: "Long Range Tank, Extended Baggage" },
+      N247CD: { emptyWeight: 1855.00, emptyArm: 98.01, emptyMoment: 181804.70, extendedBaggage: true, modification: "Long Range Tank, Extended Baggage" },
+      N349DS: { emptyWeight: 1811.00, emptyArm: 97.35, emptyMoment: 176301.73, extendedBaggage: true, modification: "Long Range Tank, Extended Baggage" },
+      N607MT: { emptyWeight: 1814.00, emptyArm: 96.97, emptyMoment: 175903.58, extendedBaggage: true, modification: "Extended Baggage" },
+      N623MT: { emptyWeight: 1811.00, emptyArm: 97.59, emptyMoment: 176735.49, extendedBaggage: true, modification: "Extended Baggage" },
+      N950MT: { emptyWeight: 1801.00, emptyArm: 97.48, emptyMoment: 175561.48, extendedBaggage: true, modification: "Extended Baggage" },
+      N951MT: { emptyWeight: 1805.50, emptyArm: 97.58, emptyMoment: 176180.69, extendedBaggage: true, modification: "Extended Baggage" },
+      N953MT: { emptyWeight: 1802.94, emptyArm: 97.24, emptyMoment: 175318.74, extendedBaggage: true, modification: "Extended Baggage" },
+      N954MT: { emptyWeight: 1798.97, emptyArm: 97.20, emptyMoment: 174866.54, extendedBaggage: true, modification: "Extended Baggage" },
+      N955MT: { emptyWeight: 1800.96, emptyArm: 97.28, emptyMoment: 175163.38, extendedBaggage: true, modification: "Extended Baggage" },
+      N956MT: { emptyWeight: 1802.06, emptyArm: 97.40, emptyMoment: 175521.84, extendedBaggage: true, modification: "Extended Baggage" },
+      N957MT: { emptyWeight: 1797.00, emptyArm: 97.36, emptyMoment: 174955.92, extendedBaggage: true, modification: "Extended Baggage" },
+      N958MT: { emptyWeight: 1860.00, emptyArm: 97.40, emptyMoment: 181164.00, extendedBaggage: true, modification: "Extended Baggage" },
+      N661MT: { emptyWeight: 1827.00, emptyArm: 97.37, emptyMoment: 177894.99, extendedBaggage: true, modification: "Extended Baggage" },
+      N662MT: { emptyWeight: 1822.00, emptyArm: 97.85, emptyMoment: 178282.70, extendedBaggage: true, modification: "Extended Baggage" },
+      N563MT: { emptyWeight: 1823.00, emptyArm: 97.69, emptyMoment: 178088.87, extendedBaggage: true, modification: "Extended Baggage" },
+      N570MT: { emptyWeight: 1754.00, emptyArm: 97.27, emptyMoment: 170611.58, extendedBaggage: false, modification: "" },
+      N571MT: { emptyWeight: 1808.00, emptyArm: 96.64, emptyMoment: 174725.12, extendedBaggage: false, modification: "" },
+      N572MT: { emptyWeight: 1768.00, emptyArm: 97.10, emptyMoment: 171672.80, extendedBaggage: false, modification: "" },
+      N581MT: { emptyWeight: 1771.00, emptyArm: 96.80, emptyMoment: 171432.80, extendedBaggage: false, modification: "" },
+      N582MT: { emptyWeight: 1764.00, emptyArm: 96.34, emptyMoment: 169935.75, extendedBaggage: false, modification: "" },
+      N583MT: { emptyWeight: 1763.00, emptyArm: 96.56, emptyMoment: 170228.77, extendedBaggage: false, modification: "" },
+      N584MT: { emptyWeight: 1788.00, emptyArm: 97.06, emptyMoment: 173543.28, extendedBaggage: false, modification: "" },
+      N585MT: { emptyWeight: 1745.00, emptyArm: 98.18, emptyMoment: 171324.10, extendedBaggage: false, modification: "" },
+      N586MT: { emptyWeight: 1757.00, emptyArm: 96.53, emptyMoment: 169603.21, extendedBaggage: false, modification: "" },
+      N587MT: { emptyWeight: 1792.00, emptyArm: 97.26, emptyMoment: 174289.92, extendedBaggage: false, modification: "" },
+      N588MT: { emptyWeight: 1796.00, emptyArm: 97.22, emptyMoment: 174607.12, extendedBaggage: false, modification: "" },
+      N589MT: { emptyWeight: 1787.00, emptyArm: 97.33, emptyMoment: 173928.71, extendedBaggage: false, modification: "" },
+      N590MT: { emptyWeight: 1807.00, emptyArm: 98.45, emptyMoment: 177899.15, extendedBaggage: false, modification: "" },
+      N592MT: { emptyWeight: 1800.00, emptyArm: 97.77, emptyMoment: 175986.00, extendedBaggage: false, modification: "" },
+      N593MT: { emptyWeight: 1823.00, emptyArm: 98.17, emptyMoment: 178963.91, extendedBaggage: true, modification: "Extended Baggage" },
+      N594MT: { emptyWeight: 1789.50, emptyArm: 97.48, emptyMoment: 174440.46, extendedBaggage: false, modification: "" },
+      N595MT: { emptyWeight: 1788.66, emptyArm: 97.59, emptyMoment: 174555.33, extendedBaggage: false, modification: "" },
+      N596MT: { emptyWeight: 1797.88, emptyArm: 97.37, emptyMoment: 175059.58, extendedBaggage: false, modification: "" },
+      N597MT: { emptyWeight: 1787.68, emptyArm: 97.15, emptyMoment: 173673.11, extendedBaggage: false, modification: "" },
+      N598MT: { emptyWeight: 1786.88, emptyArm: 97.05, emptyMoment: 173416.70, extendedBaggage: false, modification: "" },
+      N599MT: { emptyWeight: 1789.16, emptyArm: 97.27, emptyMoment: 174031.59, extendedBaggage: false, modification: "" }
+    };
+    const stations = [
+      { id: "empty", name: "Empty Weight of Aircraft", arm: 97.27 },
+      { id: "front", name: "Front Seats", arm: 90.6 },
+      { id: "rear", name: "Rear Seats", arm: 128.0 },
+      { id: "standardBaggage", name: "Standard Baggage Compartment", arm: 143.7, limit: 66 },
+      { id: "fwdBaggage", name: "Fwd Extended Baggage Compartment", arm: 153.1, limit: 100 },
+      { id: "aftBaggage", name: "Aft Extended Baggage Compartment", arm: 178.7, limit: 40 }
+    ];
+    const defaults = { fuelWeight: 241.2, fuelArm: 103.5, stationWeights: {}, details: { aircraft: "N570MT" } };
+    const envelope = [
+      { cg: 94.5, weight: 1720 }, { cg: 94.5, weight: 2161 }, { cg: 96.9, weight: 2535 },
+      { cg: 97.6, weight: 2646 }, { cg: 100.4, weight: 2646 }, { cg: 100.4, weight: 1720 },
+      { cg: 94.5, weight: 1720 }
+    ];
+    const normalEnvelope = [
+      { cg: 94.5, weight: 1720 }, { cg: 94.5, weight: 2161 }, { cg: 96.9, weight: 2535 },
+      { cg: 102.0, weight: 2535 }, { cg: 102.0, weight: 1720 }, { cg: 94.5, weight: 1720 }
+    ];
+    const rows = document.getElementById("rows");
+    const state = loadState();
+
+    function number(value) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    function fmt(value, digits = 1) {
+      return Number.isFinite(value) ? value.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits }) : "--";
+    }
+    function normalizeTail(value) {
+      const cleaned = String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      return cleaned.startsWith("N") ? cleaned : cleaned ? `N${cleaned}` : "";
+    }
+    function currentAircraft() {
+      return aircraftIndex[normalizeTail(document.getElementById("aircraft").value)];
+    }
+    function stationArm(station) {
+      if (station.id === "empty") return currentAircraft()?.emptyArm ?? 0;
+      return station.arm;
+    }
+    function loadState() {
+      try { return { ...defaults, ...JSON.parse(localStorage.getItem(storageKey) || "{}") }; }
+      catch { return structuredClone(defaults); }
+    }
+    function saveState() {
+      const payload = { fuelWeight: number(document.querySelector("[data-field='fuelWeight']").value), stationWeights: {}, details: {} };
+      stations.forEach(station => {
+        if (station.id !== "empty") payload.stationWeights[station.id] = number(document.querySelector(`[data-weight='${station.id}']`).value);
+      });
+      ["student", "instructor", "aircraft", "date"].forEach(id => { payload.details[id] = document.getElementById(id).value; });
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    }
+    function renderRows() {
+      document.getElementById("aircraftList").innerHTML = Object.keys(aircraftIndex).map(tail => `<option value="${tail}"></option>`).join("");
+      rows.innerHTML = "";
+      stations.forEach(station => {
+        const tr = document.createElement("tr");
+        const weight = station.id === "empty" ? "" : state.stationWeights?.[station.id] ?? "";
+        tr.innerHTML = `
+          <td>${station.name}${station.limit ? ` <span class="readonly">(max ${station.limit} lb)</span>` : ""}<br><span class="readonly" data-note="${station.id}"></span></td>
+          <td>${station.id === "empty" ? `<span class="readonly" data-weight="empty">--</span>` : `<input data-weight="${station.id}" type="number" min="0" step="0.1" value="${weight}">`}</td>
+          <td><span class="readonly" data-arm="${station.id}">--</span></td>
+          <td id="moment-${station.id}" class="readonly">--</td>`;
+        rows.appendChild(tr);
+      });
+      document.querySelector("[data-field='fuelWeight']").value = state.fuelWeight ?? defaults.fuelWeight;
+      Object.entries({ ...defaults.details, ...(state.details || {}) }).forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+      });
+      if (!document.getElementById("date").value) document.getElementById("date").valueAsDate = new Date();
+      applyAircraft(true);
+    }
+    function applyAircraft(commitTail = false) {
+      const tail = normalizeTail(document.getElementById("aircraft").value);
+      const aircraft = aircraftIndex[tail];
+      const message = document.getElementById("aircraftMessage");
+      const emptyWeightEl = document.querySelector("[data-weight='empty']");
+      const emptyArmEl = document.querySelector("[data-arm='empty']");
+      if (tail && aircraft) {
+        if (commitTail) document.getElementById("aircraft").value = tail;
+        emptyWeightEl.textContent = fmt(aircraft.emptyWeight, 2);
+        emptyWeightEl.dataset.value = aircraft.emptyWeight;
+        emptyArmEl.textContent = fmt(aircraft.emptyArm, 2);
+        emptyArmEl.dataset.value = aircraft.emptyArm;
+        message.className = "aircraft-message ok";
+        const baggageText = aircraft.extendedBaggage ? "Extended baggage: standard baggage disabled." : "Standard baggage aircraft: extended baggage disabled.";
+        message.textContent = `${tail} loaded: ${fmt(aircraft.emptyWeight, 2)} lb at ${fmt(aircraft.emptyArm, 2)} in. ${baggageText}`;
+      } else {
+        emptyWeightEl.textContent = "--";
+        emptyWeightEl.dataset.value = 0;
+        emptyArmEl.textContent = "--";
+        emptyArmEl.dataset.value = 0;
+        message.className = "aircraft-message bad";
+        message.textContent = tail ? `${tail} is not in the aircraft index yet.` : "Enter a tail number to load empty aircraft data.";
+      }
+      stations.filter(station => station.id !== "empty").forEach(station => {
+        const el = document.querySelector(`[data-arm='${station.id}']`);
+        el.textContent = fmt(station.arm, 1);
+        el.dataset.value = station.arm;
+      });
+      applyBaggageConfiguration(aircraft);
+      calculate();
+    }
+    function applyBaggageConfiguration(aircraft) {
+      const extendedIds = ["fwdBaggage", "aftBaggage"];
+      const standardIds = ["standardBaggage"];
+      stations.forEach(station => {
+        const row = document.querySelector(`[data-note='${station.id}']`)?.closest("tr");
+        const input = station.id === "empty" ? null : document.querySelector(`input[data-weight='${station.id}']`);
+        const note = document.querySelector(`[data-note='${station.id}']`);
+        let disabled = false;
+        let text = "";
+        if (aircraft) {
+          if (aircraft.extendedBaggage && standardIds.includes(station.id)) {
+            disabled = true;
+            text = "Not used on extended baggage aircraft";
+          }
+          if (!aircraft.extendedBaggage && extendedIds.includes(station.id)) {
+            disabled = true;
+            text = "Not installed on this aircraft";
+          }
+        }
+        if (input) {
+          input.disabled = disabled;
+          if (disabled) input.value = "";
+        }
+        if (row) row.classList.toggle("disabled-row", disabled);
+        if (note) note.textContent = text;
+      });
+    }
+    function interpolateLimit(points, weight, side) {
+      const candidates = [];
+      for (let i = 0; i < points.length - 1; i++) {
+        const a = points[i], b = points[i + 1], minW = Math.min(a.weight, b.weight), maxW = Math.max(a.weight, b.weight);
+        if (weight >= minW && weight <= maxW) {
+          if (a.weight === b.weight) candidates.push(side === "forward" ? Math.min(a.cg, b.cg) : Math.max(a.cg, b.cg));
+          else candidates.push(a.cg + ((weight - a.weight) / (b.weight - a.weight)) * (b.cg - a.cg));
+        }
+      }
+      return candidates.length ? (side === "forward" ? Math.min(...candidates) : Math.max(...candidates)) : null;
+    }
+    function isInsideEnvelope(cg, weight) {
+      let inside = false;
+      for (let i = 0, j = envelope.length - 1; i < envelope.length; j = i++) {
+        const xi = envelope[i].cg, yi = envelope[i].weight, xj = envelope[j].cg, yj = envelope[j].weight;
+        if (((yi > weight) !== (yj > weight)) && (cg < (xj - xi) * (weight - yi) / (yj - yi) + xi)) inside = !inside;
+      }
+      return inside;
+    }
+    function calculate() {
+      let zfwWeight = 0, zfwMoment = 0;
+      const warnings = [];
+      const hasAircraft = Boolean(currentAircraft());
+      stations.forEach(station => {
+        const input = station.id === "empty" ? null : document.querySelector(`[data-weight='${station.id}']`);
+        const weight = station.id === "empty" ? number(document.querySelector("[data-weight='empty']").dataset.value) : input.disabled ? 0 : number(input.value);
+        const arm = stationArm(station);
+        const moment = station.id === "empty" && currentAircraft() ? currentAircraft().emptyMoment : weight * arm;
+        zfwWeight += weight;
+        zfwMoment += moment;
+        document.getElementById(`moment-${station.id}`).textContent = hasAircraft || station.id !== "empty" ? fmt(moment) : "--";
+        if (station.limit && weight > station.limit) warnings.push(`${station.name} is over ${station.limit} lb.`);
+      });
+      const zfwArm = zfwWeight ? zfwMoment / zfwWeight : NaN;
+      const fuelWeight = number(document.querySelector("[data-field='fuelWeight']").value);
+      const fuelArm = number(document.querySelector("[data-field='fuelArm']").dataset.value);
+      const fuelMoment = fuelWeight * fuelArm;
+      const totalWeight = zfwWeight + fuelWeight;
+      const totalMoment = zfwMoment + fuelMoment;
+      const totalArm = totalWeight ? totalMoment / totalWeight : NaN;
+      const forwardLimit = interpolateLimit(envelope, totalWeight, "forward");
+      const aftLimit = interpolateLimit(envelope, totalWeight, "aft");
+      const inside = hasAircraft && Number.isFinite(totalArm) && isInsideEnvelope(totalArm, totalWeight);
+      const overTakeoff = totalWeight > 2646;
+      document.getElementById("zfwWeight").textContent = hasAircraft ? fmt(zfwWeight) : "--";
+      document.getElementById("zfwArm").textContent = hasAircraft ? fmt(zfwArm) : "--";
+      document.getElementById("zfwMoment").textContent = hasAircraft ? fmt(zfwMoment) : "--";
+      document.getElementById("fuelMoment").textContent = fmt(fuelMoment);
+      document.getElementById("totalWeight").textContent = hasAircraft ? fmt(totalWeight) : "--";
+      document.getElementById("totalArm").textContent = hasAircraft ? fmt(totalArm) : "--";
+      document.getElementById("totalMoment").textContent = hasAircraft ? fmt(totalMoment) : "--";
+      document.getElementById("cgValue").textContent = hasAircraft ? `${fmt(totalArm, 2)} in` : "--";
+      document.getElementById("weightValue").textContent = hasAircraft ? `${fmt(totalWeight)} lb` : "--";
+      const cgStatus = document.getElementById("cgStatus");
+      cgStatus.className = inside ? "ok" : "bad";
+      cgStatus.textContent = inside ? `Within envelope. Limits at this weight: ${fmt(forwardLimit, 2)} to ${fmt(aftLimit, 2)} in.` : hasAircraft ? "Outside the DA-40 envelope or below charted weight range." : "Enter a known aircraft tail number.";
+      const weightStatus = document.getElementById("weightStatus");
+      if (!hasAircraft) { weightStatus.className = "bad"; weightStatus.textContent = "Load a known aircraft before using totals."; }
+      else if (overTakeoff) { weightStatus.className = "bad"; weightStatus.textContent = "Over maximum takeoff weight."; }
+      else if (warnings.length) { weightStatus.className = "caution"; weightStatus.textContent = warnings.join(" "); }
+      else { weightStatus.className = "ok"; weightStatus.textContent = "Within listed station and takeoff limits."; }
+      drawChart(zfwArm, zfwWeight, totalArm, totalWeight, inside, overTakeoff, hasAircraft);
+      saveState();
+    }
+    function drawChart(zfwCg, zfwWeight, totalCg, totalWeight, inside, overTakeoff, hasAircraft) {
+      const svg = document.getElementById("chart"), minCg = 94, maxCg = 102.5, minW = 1650, maxW = 2700, left = 58, top = 24, width = 460, height = 340;
+      const x = value => left + ((value - minCg) / (maxCg - minCg)) * width;
+      const y = value => top + height - ((value - minW) / (maxW - minW)) * height;
+      const poly = envelope.map(p => `${x(p.cg)},${y(p.weight)}`).join(" ");
+      const normalPoly = normalEnvelope.map(p => `${x(p.cg)},${y(p.weight)}`).join(" ");
+      const zfwX = x(zfwCg), zfwY = y(zfwWeight), totalX = x(totalCg), totalY = y(totalWeight);
+      const zfwVisible = hasAircraft && Number.isFinite(zfwCg) && Number.isFinite(zfwWeight);
+      const totalVisible = hasAircraft && Number.isFinite(totalCg) && Number.isFinite(totalWeight);
+      svg.innerHTML = `
+        <line x1="${left}" y1="${top}" x2="${left}" y2="${top + height}" stroke="#607078"/>
+        <line x1="${left}" y1="${top + height}" x2="${left + width}" y2="${top + height}" stroke="#607078"/>
+        ${[94,95,96,97,98,99,100,101,102].map(v => `<line x1="${x(v)}" y1="${top}" x2="${x(v)}" y2="${top + height}" stroke="#edf1f2"/><text x="${x(v)}" y="${top + height + 22}" text-anchor="middle" font-size="12" fill="#5f6b72">${v}</text>`).join("")}
+        ${[1700,1800,1900,2000,2100,2200,2300,2400,2500,2600,2700].map(v => `<line x1="${left}" y1="${y(v)}" x2="${left + width}" y2="${y(v)}" stroke="#edf1f2"/><text x="${left - 10}" y="${y(v) + 4}" text-anchor="end" font-size="12" fill="#5f6b72">${v}</text>`).join("")}
+        <polygon points="${normalPoly}" fill="#dbeeed" stroke="#1f6f78" stroke-width="2"/>
+        <polygon points="${poly}" fill="rgba(31,111,120,0.12)" stroke="#164f56" stroke-width="2"/>
+        <text x="${left + width / 2}" y="407" text-anchor="middle" font-size="13" fill="#172126">Center of Gravity (in)</text>
+        <text transform="translate(18 ${top + height / 2}) rotate(-90)" text-anchor="middle" font-size="13" fill="#172126">Weight (lb)</text>
+        ${zfwVisible && totalVisible ? `<line x1="${zfwX}" y1="${zfwY}" x2="${totalX}" y2="${totalY}" stroke="#7b4f00" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 5"/>` : ""}
+        ${zfwVisible ? `<circle cx="${zfwX}" cy="${zfwY}" r="7" fill="#f2b84b" stroke="#fff" stroke-width="3"/><text x="${Math.min(zfwX + 12, left + width - 110)}" y="${Math.min(Math.max(zfwY + 22, top + 26), top + height - 8)}" font-size="12" fill="#172126">ZFW ${fmt(zfwCg, 2)} in / ${fmt(zfwWeight, 0)} lb</text>` : ""}
+        ${totalVisible ? `<circle cx="${totalX}" cy="${totalY}" r="7" fill="${inside && !overTakeoff ? "#1f6b3a" : "#9b1c1c"}" stroke="#fff" stroke-width="3"/><text x="${Math.min(totalX + 12, left + width - 130)}" y="${Math.max(totalY - 12, top + 14)}" font-size="12" fill="#172126">Total ${fmt(totalCg, 2)} in / ${fmt(totalWeight, 0)} lb</text>` : ""}
+        <rect x="${left + width - 142}" y="${top + 10}" width="130" height="50" rx="6" fill="#fff" stroke="#cfd8dc"/>
+        <circle cx="${left + width - 126}" cy="${top + 28}" r="5" fill="#f2b84b"/><text x="${left + width - 114}" y="${top + 32}" font-size="12" fill="#172126">Zero fuel</text>
+        <circle cx="${left + width - 126}" cy="${top + 48}" r="5" fill="${inside && !overTakeoff ? "#1f6b3a" : "#9b1c1c"}"/><text x="${left + width - 114}" y="${top + 52}" font-size="12" fill="#172126">Total</text>`;
+    }
+    document.addEventListener("input", event => {
+      if (event.target.id === "aircraft") applyAircraft(false);
+      else if (event.target.matches("input")) calculate();
+    });
+    document.getElementById("aircraft").addEventListener("change", () => applyAircraft(true));
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      saveState();
+      const btn = document.getElementById("saveBtn");
+      btn.textContent = "Saved";
+      setTimeout(() => { btn.textContent = "Save Flight"; }, 1100);
+    });
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      stations.forEach(station => {
+        if (station.id !== "empty") document.querySelector(`[data-weight='${station.id}']`).value = "";
+      });
+      document.querySelector("[data-field='fuelWeight']").value = 241.2;
+      calculate();
+    });
+    renderRows();
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
