@@ -2,7 +2,7 @@
   "name": "DA-40 Weight and Balance",
   "short_name": "DA-40 W&B",
   "description": "Diamond DA-40 aircraft weight and balance calculator.",
-  "start_url": "./da40_weight_balance.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",

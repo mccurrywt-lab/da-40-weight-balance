@@ -1,7 +1,7 @@
-const CACHE_NAME = "da40-weight-balance-v1";
+const CACHE_NAME = "da40-weight-balance-v3";
 const APP_FILES = [
   "./",
-  "./da40_weight_balance.html",
+  "./index.html",
   "./manifest.json",
   "./icon-180.png",
   "./icon-512.png"
