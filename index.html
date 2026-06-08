@@ -153,7 +153,10 @@
 
   <script>
     const storageKey = "da40-weight-balance-index-v1";
-    const aircraftIndex = {
+    const aircraftCacheKey = "da40-aircraft-index-cache-v1";
+    const SUPABASE_URL = "https://cxcwclznzimisklucivy.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_PVrmLMvPXph1qA9I-fvqpA_7ss9zJnK";
+    const fallbackAircraftIndex = {
       N607MT: { emptyWeight: 1814.00, emptyArm: 96.97, emptyMoment: 175903.58, extendedBaggage: true, modification: "Extended Baggage" },
       N623MT: { emptyWeight: 1811.00, emptyArm: 97.59, emptyMoment: 176735.49, extendedBaggage: true, modification: "Extended Baggage" },
       N950MT: { emptyWeight: 1801.00, emptyArm: 97.48, emptyMoment: 175561.48, extendedBaggage: true, modification: "Extended Baggage" },
@@ -189,6 +192,7 @@
       N598MT: { emptyWeight: 1786.88, emptyArm: 97.05, emptyMoment: 173416.70, extendedBaggage: false, modification: "" },
       N599MT: { emptyWeight: 1789.16, emptyArm: 97.27, emptyMoment: 174031.59, extendedBaggage: false, modification: "" }
     };
+    let aircraftIndex = loadCachedAircraftIndex() || { ...fallbackAircraftIndex };
     const stations = [
       { id: "empty", name: "Empty Weight of Aircraft", arm: 97.27 },
       { id: "front", name: "Front Seats", arm: 90.6 },
@@ -221,6 +225,56 @@
       const cleaned = String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
       return cleaned.startsWith("N") ? cleaned : cleaned ? `N${cleaned}` : "";
     }
+    function indexFromRows(rows) {
+      return rows.reduce((index, row) => {
+        const tail = normalizeTail(row.tail_number);
+        if (!tail) return index;
+        index[tail] = {
+          emptyWeight: number(row.empty_weight),
+          emptyArm: number(row.empty_arm),
+          emptyMoment: number(row.empty_moment),
+          extendedBaggage: Boolean(row.extended_baggage),
+          modification: row.notes || (row.extended_baggage ? "Extended Baggage" : "")
+        };
+        return index;
+      }, {});
+    }
+    function loadCachedAircraftIndex() {
+      try {
+        const rows = JSON.parse(localStorage.getItem(aircraftCacheKey) || "null");
+        return Array.isArray(rows) && rows.length ? indexFromRows(rows) : null;
+      } catch {
+        return null;
+      }
+    }
+    function refreshAircraftList() {
+      document.getElementById("aircraftList").innerHTML = Object.keys(aircraftIndex)
+        .sort()
+        .map(tail => `<option value="${tail}"></option>`)
+        .join("");
+    }
+    async function syncAircraftFromSupabase() {
+      const url = `${SUPABASE_URL}/rest/v1/aircraft?select=tail_number,empty_weight,empty_arm,empty_moment,extended_baggage,notes&active=eq.true&order=tail_number.asc`;
+      try {
+        const response = await fetch(url, {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            Accept: "application/json"
+          }
+        });
+        if (!response.ok) throw new Error(`Supabase returned ${response.status}`);
+        const rows = await response.json();
+        if (!Array.isArray(rows) || !rows.length) throw new Error("Supabase returned no aircraft");
+        aircraftIndex = indexFromRows(rows);
+        localStorage.setItem(aircraftCacheKey, JSON.stringify(rows));
+        refreshAircraftList();
+        applyAircraft(true);
+      } catch {
+        refreshAircraftList();
+        applyAircraft(false);
+      }
+    }
     function currentAircraft() {
       return aircraftIndex[normalizeTail(document.getElementById("aircraft").value)];
     }
@@ -241,7 +295,7 @@
       localStorage.setItem(storageKey, JSON.stringify(payload));
     }
     function renderRows() {
-      document.getElementById("aircraftList").innerHTML = Object.keys(aircraftIndex).map(tail => `<option value="${tail}"></option>`).join("");
+      refreshAircraftList();
       rows.innerHTML = "";
       stations.forEach(station => {
         const tr = document.createElement("tr");
@@ -427,6 +481,7 @@
       calculate();
     });
     renderRows();
+    syncAircraftFromSupabase();
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./sw.js").catch(() => {});
