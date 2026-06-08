@@ -65,12 +65,31 @@
     .limits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
     .limit-item { border: 1px solid var(--line); border-radius: 6px; padding: 9px; background: #fff; font-size: 13px; }
     .limit-item span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 2px; }
+    .preflight-section { margin-top: 16px; }
+    .score-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .score-box { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: var(--panel); }
+    .score-box span { display: block; color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    .score-box strong { display: block; font-size: 24px; margin-top: 4px; }
+    .preflight-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+    .preflight-panel { border-top: 1px solid var(--line); padding-top: 12px; }
+    .preflight-panel.full { grid-column: 1 / -1; }
+    .compact-grid { display: grid; grid-template-columns: repeat(3, minmax(110px, 1fr)); gap: 10px; }
+    .two-grid { display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 10px; }
+    .check-grid { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 8px 12px; }
+    .check-grid label { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 13px; font-weight: 400; text-transform: none; }
+    .check-grid input { width: auto; }
+    .mini-table { margin-top: 8px; }
+    .mini-table th:first-child, .mini-table td:first-child { width: auto; }
+    .mini-table input { min-width: 70px; }
+    .summary-list { display: grid; gap: 7px; margin: 8px 0 0; padding: 0; list-style: none; }
+    .summary-list li { border: 1px solid var(--line); border-radius: 6px; padding: 8px; background: #fff; font-size: 13px; }
     @media (max-width: 880px) {
       main { padding: 14px; }
       header { align-items: start; flex-direction: column; }
       .actions { justify-content: flex-start; }
       .grid { grid-template-columns: 1fr; }
       .details { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .score-strip, .preflight-grid, .compact-grid, .two-grid, .check-grid { grid-template-columns: 1fr; }
       table { font-size: 14px; }
       th, td { padding: 7px 5px; }
     }
@@ -86,7 +105,7 @@
 <body>
   <main>
     <header>
-      <div>
+      <div class="brand">
         <img class="brand-mark" src="mtsu-aerospace-logo.jpg" alt="MTSU Aerospace">
         <div>
           <h1>DA-40 Weight &amp; Balance</h1>
@@ -157,10 +176,98 @@
         </div>
       </section>
     </div>
+
+    <section class="preflight-section">
+      <h2>Preflight Scorecard</h2>
+      <div class="score-strip">
+        <div class="score-box"><span>Risk Score</span><strong id="riskScore">0</strong><div id="riskStatus" class="ok">Flight instructor approval required.</div></div>
+        <div class="score-box"><span>W&amp;B Gate</span><strong id="wbGate">--</strong><div id="wbGateNote" class="bad">Complete weight and balance first.</div></div>
+        <div class="score-box"><span>Performance</span><strong id="performanceGate">--</strong><div id="performanceNote" class="caution">Enter AFM distances.</div></div>
+      </div>
+
+      <div class="preflight-grid">
+        <div class="preflight-panel">
+          <h2>Weather</h2>
+          <div class="actions" style="justify-content:flex-start;margin-bottom:8px">
+            <button type="button" class="secondary" id="openWeatherBtn">Open KMBT Weather</button>
+          </div>
+          <table class="mini-table" aria-label="Weather scorecard">
+            <thead><tr><th>Category</th><th>Current</th><th>Forecast</th><th>Score</th></tr></thead>
+            <tbody>
+              <tr><td>Wind kt</td><td><input data-preflight="windCurrent" type="number" min="0" step="1"></td><td><input data-preflight="windForecast" type="number" min="0" step="1"></td><td id="windScore">--</td></tr>
+              <tr><td>Crosswind kt</td><td><input data-preflight="xwindCurrent" type="number" min="0" step="1"></td><td><input data-preflight="xwindForecast" type="number" min="0" step="1"></td><td id="xwindScore">--</td></tr>
+              <tr><td>Visibility SM</td><td><input data-preflight="visCurrent" type="number" min="0" step="0.1"></td><td><input data-preflight="visForecast" type="number" min="0" step="0.1"></td><td id="visScore">--</td></tr>
+              <tr><td>Ceiling ft</td><td><input data-preflight="ceilingCurrent" type="number" min="0" step="100"></td><td><input data-preflight="ceilingForecast" type="number" min="0" step="100"></td><td id="ceilingScore">--</td></tr>
+            </tbody>
+          </table>
+          <div class="check-grid" style="margin-top:10px">
+            <label><input data-preflight="icingAirmetIfr" type="checkbox"> Icing AIRMET with IFR</label>
+            <label><input data-preflight="llwsAirmet" type="checkbox"> LLWS AIRMET</label>
+            <label><input data-preflight="sigmet" type="checkbox"> SIGMET present</label>
+            <label><input data-preflight="convective" type="checkbox"> Convective SIGMET/CWA</label>
+            <label><input data-preflight="uuaPirep" type="checkbox"> UUA PIREP near route</label>
+          </div>
+          <p class="note" id="weatherSource">Use the official KMBT METAR/TAF source, then enter current and forecast values.</p>
+        </div>
+
+        <div class="preflight-panel">
+          <h2>Fuel, Time, Duty</h2>
+          <div class="compact-grid">
+            <label>Est. Flight Time<input data-preflight="flightTime" type="number" min="0" step="0.1" placeholder="hr"></label>
+            <label>Fuel Required<input data-preflight="fuelRequired" type="number" min="0" step="0.1" placeholder="lb"></label>
+            <label>Cruise Burn<input data-preflight="cruiseBurn" type="number" min="0" step="0.1" placeholder="lb/hr"></label>
+            <label>Prior 24h Instruction<input data-preflight="priorInstruction" type="number" min="0" step="0.1" placeholder="hr"></label>
+            <label>Duty Day at Return<input data-preflight="dutyDay" type="number" min="0" step="0.1" placeholder="hr"></label>
+            <label>Route<input data-preflight="route" type="text" placeholder="KMBT local"></label>
+          </div>
+          <ul class="summary-list">
+            <li>Fuel at landing: <strong id="fuelLanding">--</strong> <span class="readonly" id="fuelReserve">--</span></li>
+            <li>Instruction by end: <strong id="instructionTotal">--</strong></li>
+            <li>Fuel/time/duty score: <strong id="timeFuelDutyScore">--</strong></li>
+          </ul>
+          <div class="check-grid" style="margin-top:10px">
+            <label><input data-preflight="ifrVmc" type="checkbox"> IFR in VMC</label>
+            <label><input data-preflight="ifrImc" type="checkbox"> IFR in IMC</label>
+            <label><input data-preflight="night" type="checkbox"> Night</label>
+            <label><input data-preflight="cfiCfi" type="checkbox"> CFI with CFI</label>
+          </div>
+        </div>
+
+        <div class="preflight-panel full">
+          <h2>Takeoff and Landing Distance</h2>
+          <table class="mini-table" aria-label="Takeoff and landing distance checks">
+            <thead><tr><th>Airport</th><th>Runway Avail.</th><th>TO Ground</th><th>TO 50 ft</th><th>LDG Ground</th><th>LDG 50 ft</th><th>Margin</th></tr></thead>
+            <tbody>
+              <tr><td><input data-preflight="perfAirport1" type="text" placeholder="KMBT"></td><td><input data-preflight="runway1" type="number" min="0" step="1"></td><td><input data-preflight="toGround1" type="number" min="0" step="1"></td><td><input data-preflight="to50_1" type="number" min="0" step="1"></td><td><input data-preflight="ldgGround1" type="number" min="0" step="1"></td><td><input data-preflight="ldg50_1" type="number" min="0" step="1"></td><td id="margin1">--</td></tr>
+              <tr><td><input data-preflight="perfAirport2" type="text"></td><td><input data-preflight="runway2" type="number" min="0" step="1"></td><td><input data-preflight="toGround2" type="number" min="0" step="1"></td><td><input data-preflight="to50_2" type="number" min="0" step="1"></td><td><input data-preflight="ldgGround2" type="number" min="0" step="1"></td><td><input data-preflight="ldg50_2" type="number" min="0" step="1"></td><td id="margin2">--</td></tr>
+              <tr><td><input data-preflight="perfAirport3" type="text"></td><td><input data-preflight="runway3" type="number" min="0" step="1"></td><td><input data-preflight="toGround3" type="number" min="0" step="1"></td><td><input data-preflight="to50_3" type="number" min="0" step="1"></td><td><input data-preflight="ldgGround3" type="number" min="0" step="1"></td><td><input data-preflight="ldg50_3" type="number" min="0" step="1"></td><td id="margin3">--</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="preflight-panel full">
+          <h2>Verifications</h2>
+          <div class="check-grid">
+            <label><input data-preflight="verifyWeather" type="checkbox"> Weather complies with Safety Practices</label>
+            <label><input data-preflight="verifyDelays" type="checkbox"> Traffic delays checked</label>
+            <label><input data-preflight="verifyNotams" type="checkbox"> NOTAMs checked</label>
+            <label><input data-preflight="verifyTfrs" type="checkbox"> TFRs checked</label>
+            <label><input data-preflight="verifyDocs" type="checkbox"> Pilot documents current/onboard</label>
+            <label><input data-preflight="verifyAirports" type="checkbox"> Airports approved</label>
+            <label><input data-preflight="verifyWb" type="checkbox"> W&amp;B verified</label>
+            <label><input data-preflight="verifyPerformance" type="checkbox"> TO/LDG distances verified</label>
+            <label><input data-preflight="verifyImsafe" type="checkbox"> IMSAFE passed</label>
+            <label><input data-preflight="verifyBriefing" type="checkbox"> XC standard briefing complete</label>
+          </div>
+          <ul class="summary-list" id="approvalList"></ul>
+        </div>
+      </div>
+    </section>
   </main>
 
   <script>
     const storageKey = "da40-weight-balance-index-v1";
+    const preflightStorageKey = "da40-preflight-scorecard-v1";
     const aircraftCacheKey = "da40-aircraft-index-cache-v1";
     const SUPABASE_URL = "https://cxcwclznzimisklucivy.supabase.co";
     const SUPABASE_KEY = "sb_publishable_PVrmLMvPXph1qA9I-fvqpA_7ss9zJnK";
@@ -201,6 +308,7 @@
       N599MT: { emptyWeight: 1789.16, emptyArm: 97.27, emptyMoment: 174031.59, extendedBaggage: false, modification: "" }
     };
     let aircraftIndex = loadCachedAircraftIndex() || { ...fallbackAircraftIndex };
+    let weightBalanceResult = { ready: false, pass: false, message: "Complete weight and balance first." };
     const stations = [
       { id: "empty", name: "Empty Weight of Aircraft", arm: 97.27 },
       { id: "front", name: "Front Seats", arm: 90.6 },
@@ -442,7 +550,13 @@
       else if (overTakeoff) { weightStatus.className = "bad"; weightStatus.textContent = "Over maximum takeoff weight."; }
       else if (warnings.length) { weightStatus.className = "caution"; weightStatus.textContent = warnings.join(" "); }
       else { weightStatus.className = "ok"; weightStatus.textContent = "Within listed station and takeoff limits."; }
+      weightBalanceResult = {
+        ready: hasAircraft,
+        pass: hasAircraft && inside && !overTakeoff && !warnings.length,
+        message: !hasAircraft ? "Load a known aircraft." : inside && !overTakeoff && !warnings.length ? "Within W&B limits." : "Resolve W&B before release."
+      };
       drawChart(zfwArm, zfwWeight, totalArm, totalWeight, inside, overTakeoff, hasAircraft);
+      calculatePreflight();
       saveState();
     }
     function drawChart(zfwCg, zfwWeight, totalCg, totalWeight, inside, overTakeoff, hasAircraft) {
@@ -470,10 +584,233 @@
         <circle cx="${left + width - 126}" cy="${top + 28}" r="5" fill="#f2b84b"/><text x="${left + width - 114}" y="${top + 32}" font-size="12" fill="#172126">Zero fuel</text>
         <circle cx="${left + width - 126}" cy="${top + 48}" r="5" fill="${inside && !overTakeoff ? "#1f6b3a" : "#9b1c1c"}"/><text x="${left + width - 114}" y="${top + 52}" font-size="12" fill="#172126">Total</text>`;
     }
+    function optionalValue(name) {
+      const el = document.querySelector(`[data-preflight='${name}']`);
+      if (!el || el.value === "") return null;
+      const parsed = Number(el.value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    function checked(name) {
+      return Boolean(document.querySelector(`[data-preflight='${name}']`)?.checked);
+    }
+    function maxEntered(...names) {
+      const values = names.map(optionalValue).filter(value => value !== null);
+      return values.length ? Math.max(...values) : null;
+    }
+    function minEntered(...names) {
+      const values = names.map(optionalValue).filter(value => value !== null);
+      return values.length ? Math.min(...values) : null;
+    }
+    function scoreWind(value) {
+      if (value === null) return null;
+      if (value < 10) return 0;
+      if (value < 20) return 2;
+      return 5;
+    }
+    function scoreCrosswind(value) {
+      if (value === null) return null;
+      if (value < 5) return 0;
+      if (value < 10) return 2;
+      return 5;
+    }
+    function scoreVisibility(value) {
+      if (value === null) return null;
+      if (value >= 5) return 0;
+      if (value >= 3) return 3;
+      if (value >= 1) return 5;
+      return 8;
+    }
+    function scoreCeiling(value) {
+      if (value === null) return null;
+      if (value >= 5000) return 0;
+      if (value >= 3000) return 2;
+      if (value >= 1500) return 3;
+      if (value >= 500) return 5;
+      return 8;
+    }
+    function scoreFlightTime(hours) {
+      if (hours === null) return null;
+      if (hours < 3) return 0;
+      if (hours < 5) return 2;
+      return 5;
+    }
+    function scoreFuelReserve(hours) {
+      if (hours === null) return { score: null, approval: false };
+      if (hours >= 1.5) return { score: 0, approval: false };
+      if (hours >= 1) return { score: 3, approval: false };
+      return { score: 5, approval: true };
+    }
+    function scoreInstruction(hours) {
+      if (hours === null) return { score: null, approval: false };
+      if (hours < 5) return { score: 0, approval: false };
+      if (hours < 6) return { score: 2, approval: false };
+      if (hours < 7) return { score: 4, approval: false };
+      return { score: 6, approval: true };
+    }
+    function scoreDuty(hours) {
+      if (hours === null) return null;
+      if (hours < 10) return 0;
+      if (hours <= 12) return 3;
+      return 5;
+    }
+    function putScore(id, score) {
+      document.getElementById(id).textContent = score === null ? "--" : String(score);
+    }
+    function savePreflightState() {
+      const values = {};
+      document.querySelectorAll("[data-preflight]").forEach(el => {
+        values[el.dataset.preflight] = el.type === "checkbox" ? el.checked : el.value;
+      });
+      localStorage.setItem(preflightStorageKey, JSON.stringify(values));
+    }
+    function loadPreflightState() {
+      try {
+        const values = JSON.parse(localStorage.getItem(preflightStorageKey) || "{}");
+        Object.entries(values).forEach(([key, value]) => {
+          const el = document.querySelector(`[data-preflight='${key}']`);
+          if (!el) return;
+          if (el.type === "checkbox") el.checked = Boolean(value);
+          else el.value = value;
+        });
+      } catch {}
+    }
+    function calculatePerformance() {
+      let rowsWithData = 0;
+      let failed = false;
+      for (let i = 1; i <= 3; i++) {
+        const runway = optionalValue(`runway${i}`);
+        const distances = [`toGround${i}`, `to50_${i}`, `ldgGround${i}`, `ldg50_${i}`].map(optionalValue).filter(value => value !== null);
+        const marginEl = document.getElementById(`margin${i}`);
+        if (runway === null && !distances.length) {
+          marginEl.textContent = "--";
+          marginEl.className = "";
+          continue;
+        }
+        rowsWithData += 1;
+        if (runway === null || !distances.length) {
+          marginEl.textContent = "Need data";
+          marginEl.className = "caution";
+          continue;
+        }
+        const required = Math.max(...distances);
+        const margin = runway - required;
+        marginEl.textContent = `${fmt(margin, 0)} ft`;
+        marginEl.className = margin >= 0 ? "ok" : "bad";
+        if (margin < 0) failed = true;
+      }
+      const gate = document.getElementById("performanceGate");
+      const note = document.getElementById("performanceNote");
+      if (!rowsWithData) {
+        gate.textContent = "--";
+        note.className = "caution";
+        note.textContent = "Enter AFM distances.";
+      } else if (failed) {
+        gate.textContent = "No";
+        note.className = "bad";
+        note.textContent = "At least one distance exceeds runway available.";
+      } else {
+        gate.textContent = "OK";
+        note.className = "ok";
+        note.textContent = "Entered distances fit runway available.";
+      }
+      return { entered: rowsWithData > 0, pass: rowsWithData > 0 && !failed };
+    }
+    function calculatePreflight() {
+      const approvals = [];
+      const scores = [];
+      const missing = [];
+
+      const wind = scoreWind(maxEntered("windCurrent", "windForecast"));
+      const xwind = scoreCrosswind(maxEntered("xwindCurrent", "xwindForecast"));
+      const vis = scoreVisibility(minEntered("visCurrent", "visForecast"));
+      const ceiling = scoreCeiling(minEntered("ceilingCurrent", "ceilingForecast"));
+      putScore("windScore", wind);
+      putScore("xwindScore", xwind);
+      putScore("visScore", vis);
+      putScore("ceilingScore", ceiling);
+      [["Wind", wind], ["Crosswind", xwind], ["Visibility", vis], ["Ceiling", ceiling]].forEach(([name, score]) => {
+        if (score === null) missing.push(name);
+        else scores.push(score);
+      });
+
+      if (checked("icingAirmetIfr")) { scores.push(10); approvals.push("Icing AIRMET with IFR conditions"); }
+      if (checked("llwsAirmet")) { scores.push(5); approvals.push("LLWS AIRMET"); }
+      if (checked("sigmet")) { scores.push(5); approvals.push("SIGMET present"); }
+      if (checked("convective")) { scores.push(5); approvals.push("Convective SIGMET/CWA"); }
+      if (checked("uuaPirep")) { scores.push(5); approvals.push("UUA PIREP near route"); }
+      if (checked("ifrVmc")) scores.push(1);
+      if (checked("ifrImc")) scores.push(3);
+      if (checked("night")) scores.push(4);
+      if (checked("cfiCfi")) scores.push(1);
+
+      const flightTime = optionalValue("flightTime");
+      const fuelRequired = optionalValue("fuelRequired");
+      const cruiseBurn = optionalValue("cruiseBurn");
+      const priorInstruction = optionalValue("priorInstruction");
+      const dutyDay = optionalValue("dutyDay");
+      const totalFuel = number(document.querySelector("[data-field='fuelWeight']").value);
+      const fuelLanding = fuelRequired === null ? null : totalFuel - fuelRequired;
+      const reserveHours = fuelLanding === null || !cruiseBurn ? null : fuelLanding / cruiseBurn;
+      const fuelScore = scoreFuelReserve(reserveHours);
+      const flightTimeScore = scoreFlightTime(flightTime);
+      const instructionTotal = priorInstruction === null || flightTime === null ? null : priorInstruction + flightTime;
+      const instructionScore = scoreInstruction(instructionTotal);
+      const dutyScore = scoreDuty(dutyDay);
+      if (flightTimeScore === null) missing.push("Flight time"); else scores.push(flightTimeScore);
+      if (fuelScore.score === null) missing.push("Fuel reserve"); else scores.push(fuelScore.score);
+      if (instructionScore.score === null) missing.push("24-hour instruction"); else scores.push(instructionScore.score);
+      if (dutyScore === null) missing.push("Duty day"); else scores.push(dutyScore);
+      if (fuelScore.approval) approvals.push("Fuel remaining below 1.0 hour at cruise");
+      if (instructionScore.approval) approvals.push("7+ hours instruction in prior 24-hour period by end of flight");
+      document.getElementById("fuelLanding").textContent = fuelLanding === null ? "--" : `${fmt(fuelLanding, 1)} lb`;
+      document.getElementById("fuelReserve").textContent = reserveHours === null ? "--" : `${fmt(reserveHours, 2)} hr reserve`;
+      document.getElementById("instructionTotal").textContent = instructionTotal === null ? "--" : `${fmt(instructionTotal, 1)} hr`;
+      document.getElementById("timeFuelDutyScore").textContent = [flightTimeScore, fuelScore.score, instructionScore.score, dutyScore].map(score => score === null ? "--" : score).join(" / ");
+
+      const performance = calculatePerformance();
+      const wbGate = document.getElementById("wbGate");
+      const wbGateNote = document.getElementById("wbGateNote");
+      wbGate.textContent = weightBalanceResult.pass ? "OK" : weightBalanceResult.ready ? "No" : "--";
+      wbGateNote.className = weightBalanceResult.pass ? "ok" : "bad";
+      wbGateNote.textContent = weightBalanceResult.message;
+
+      if (!weightBalanceResult.pass) approvals.push("Weight and balance not ready for release");
+      if (performance.entered && !performance.pass) approvals.push("Takeoff/landing distance exceeds runway available");
+
+      const total = scores.reduce((sum, score) => sum + score, 0);
+      const riskScore = document.getElementById("riskScore");
+      const riskStatus = document.getElementById("riskStatus");
+      riskScore.textContent = String(total);
+      if (total >= 30) {
+        riskStatus.className = "bad";
+        riskStatus.textContent = "Double FTM approval required.";
+      } else if (total >= 20) {
+        riskStatus.className = "caution";
+        riskStatus.textContent = "On-call instructor approval required.";
+      } else {
+        riskStatus.className = "ok";
+        riskStatus.textContent = "Flight instructor approval required.";
+      }
+      if (missing.length) riskStatus.textContent += ` Missing: ${missing.join(", ")}.`;
+
+      const list = document.getElementById("approvalList");
+      const verificationMissing = Array.from(document.querySelectorAll("[data-preflight^='verify']")).filter(el => !el.checked).length;
+      const items = [];
+      if (approvals.length) approvals.forEach(item => items.push(`<li class="bad">Approval/action: ${item}</li>`));
+      if (verificationMissing) items.push(`<li class="caution">${verificationMissing} verification item${verificationMissing === 1 ? "" : "s"} still unchecked.</li>`);
+      if (!items.length) items.push(`<li class="ok">No additional approval flags from entered data.</li>`);
+      list.innerHTML = items.join("");
+      savePreflightState();
+    }
+    function openKmbtWeather() {
+      window.open("https://aviationweather.gov/api/data/metar?ids=KMBT&format=json", "_blank", "noopener");
+    }
     document.addEventListener("input", event => {
-      if (event.target.id === "aircraft") applyAircraft(false);
+      if (event.target.matches("[data-preflight]")) calculatePreflight();
+      else if (event.target.id === "aircraft") applyAircraft(false);
       else if (event.target.matches("input")) calculate();
     });
+    document.getElementById("openWeatherBtn").addEventListener("click", openKmbtWeather);
     document.getElementById("aircraft").addEventListener("change", () => applyAircraft(true));
     document.getElementById("resetBtn").addEventListener("click", () => {
       stations.forEach(station => {
@@ -482,6 +819,7 @@
       document.querySelector("[data-field='fuelWeight']").value = 241.2;
       calculate();
     });
+    loadPreflightState();
     renderRows();
     syncAircraftFromSupabase();
     if ("serviceWorker" in navigator) {
