@@ -7,6 +7,7 @@ The forecast column must not be filled from Nashville (KBNA), Smyrna (KMQY), or 
 - Current weather: AWC KMBT METAR.
 - Forecast auto-fill: AWC KMBT TAF only if AWC publishes one.
 - If no KMBT TAF is returned, do not substitute another TAF. Use AWC GFA products for the forecast window.
+- The app includes an AWC GFA pop-up with the required products and live AWC links.
 
 ## AWC Products To Use Manually When No KMBT TAF Exists
 
