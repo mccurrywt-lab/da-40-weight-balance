@@ -189,7 +189,7 @@
         <div class="preflight-panel">
           <h2>Weather</h2>
           <div class="actions" style="justify-content:flex-start;margin-bottom:8px">
-            <button type="button" class="secondary" id="openWeatherBtn">Open KMBT Weather</button>
+            <button type="button" class="secondary" id="fetchWeatherBtn">Refresh KMBT Weather</button>
           </div>
           <table class="mini-table" aria-label="Weather scorecard">
             <thead><tr><th>Category</th><th>Current</th><th>Forecast</th><th>Score</th></tr></thead>
@@ -207,7 +207,7 @@
             <label><input data-preflight="convective" type="checkbox"> Convective SIGMET/CWA</label>
             <label><input data-preflight="uuaPirep" type="checkbox"> UUA PIREP near route</label>
           </div>
-          <p class="note" id="weatherSource">Use the official KMBT METAR/TAF source, then enter current and forecast values.</p>
+          <p class="note" id="weatherSource">Current weather auto-fills from the latest KMBT METAR. Forecast values remain manual for now.</p>
         </div>
 
         <div class="preflight-panel">
@@ -235,6 +235,11 @@
 
         <div class="preflight-panel full">
           <h2>Takeoff and Landing Distance</h2>
+          <div class="compact-grid" style="margin-bottom:10px">
+            <label>OAT<input data-preflight="performanceTemp" type="number" step="1" readonly placeholder="C"></label>
+            <label>Altimeter<input data-preflight="altimeter" type="number" step="0.01" readonly placeholder="inHg"></label>
+            <label>Pressure Altitude<input data-preflight="pressureAltitude" type="number" step="1" readonly placeholder="ft"></label>
+          </div>
           <table class="mini-table" aria-label="Takeoff and landing distance checks">
             <thead><tr><th>Airport</th><th>Runway Avail.</th><th>TO Ground</th><th>TO 50 ft</th><th>LDG Ground</th><th>LDG 50 ft</th><th>Margin</th></tr></thead>
             <tbody>
@@ -271,6 +276,7 @@
     const aircraftCacheKey = "da40-aircraft-index-cache-v1";
     const SUPABASE_URL = "https://cxcwclznzimisklucivy.supabase.co";
     const SUPABASE_KEY = "sb_publishable_PVrmLMvPXph1qA9I-fvqpA_7ss9zJnK";
+    const WEATHER_PROXY_URL = "https://cxcwclznzimisklucivy.functions.supabase.co/kmbt-weather";
     const fallbackAircraftIndex = {
       N607MT: { emptyWeight: 1814.00, emptyArm: 96.97, emptyMoment: 175903.58, extendedBaggage: true, modification: "Extended Baggage" },
       N623MT: { emptyWeight: 1811.00, emptyArm: 97.59, emptyMoment: 176735.49, extendedBaggage: true, modification: "Extended Baggage" },
@@ -802,15 +808,80 @@
       list.innerHTML = items.join("");
       savePreflightState();
     }
-    function openKmbtWeather() {
-      window.open("https://aviationweather.gov/api/data/metar?ids=KMBT&format=json", "_blank", "noopener");
+    function parseVisibility(value) {
+      if (typeof value === "number") return value;
+      const text = String(value || "").replace("+", "").trim();
+      const parsed = Number(text);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    function metarCeiling(clouds) {
+      if (!Array.isArray(clouds)) return null;
+      const ceiling = clouds.find(cloud => {
+        const cover = String(cloud.cover || "").toUpperCase();
+        const base = Number(cloud.base);
+        return ["BKN", "OVC", "VV"].includes(cover) && Number.isFinite(base);
+      });
+      return ceiling ? Number(ceiling.base) : null;
+    }
+    function altimeterToInHg(value) {
+      const altimeter = Number(value);
+      if (!Number.isFinite(altimeter)) return null;
+      return altimeter > 100 ? altimeter * 0.0295299830714 : altimeter;
+    }
+    function pressureAltitude(altimeterInHg) {
+      if (!Number.isFinite(altimeterInHg)) return null;
+      return Math.round((29.92 - altimeterInHg) * 1000 + 614);
+    }
+    function setPreflightValue(name, value, digits = null) {
+      const el = document.querySelector(`[data-preflight='${name}']`);
+      if (!el || value === null || value === undefined || Number.isNaN(value)) return;
+      el.value = digits === null ? value : Number(value).toFixed(digits);
+    }
+    async function fetchMetarPayload() {
+      const proxyResponse = await fetch(WEATHER_PROXY_URL);
+      if (proxyResponse.ok) return proxyResponse.json();
+      const directResponse = await fetch("https://aviationweather.gov/api/data/metar?ids=KMBT&format=json");
+      if (!directResponse.ok) throw new Error(`Weather request returned ${directResponse.status}`);
+      return directResponse.json();
+    }
+    async function fetchKmbtWeather() {
+      const source = document.getElementById("weatherSource");
+      source.className = "note caution";
+      source.textContent = "Fetching latest KMBT METAR...";
+      try {
+        const payload = await fetchMetarPayload();
+        const rows = Array.isArray(payload) ? payload : Array.isArray(payload.value) ? payload.value : [];
+        const metar = rows[0];
+        if (!metar) throw new Error("No KMBT METAR returned");
+
+        const wind = Number(metar.wspd);
+        const visibility = parseVisibility(metar.visib);
+        const ceiling = metarCeiling(metar.clouds);
+        const temp = Number(metar.temp);
+        const altimeterInHg = altimeterToInHg(metar.altim);
+        const pa = pressureAltitude(altimeterInHg);
+
+        if (Number.isFinite(wind)) setPreflightValue("windCurrent", wind);
+        if (visibility !== null) setPreflightValue("visCurrent", visibility);
+        if (ceiling !== null) setPreflightValue("ceilingCurrent", ceiling);
+        if (Number.isFinite(temp)) setPreflightValue("performanceTemp", temp);
+        if (altimeterInHg !== null) setPreflightValue("altimeter", altimeterInHg, 2);
+        if (pa !== null) setPreflightValue("pressureAltitude", pa);
+
+        source.className = "note ok";
+        source.textContent = `${metar.rawOb || "KMBT METAR"} | OAT ${Number.isFinite(temp) ? `${temp} C` : "--"} | PA ${pa !== null ? `${pa} ft` : "--"}`;
+        calculatePreflight();
+      } catch {
+        source.className = "note bad";
+        source.textContent = "Could not fetch KMBT METAR. Enter current weather manually.";
+      }
     }
     document.addEventListener("input", event => {
       if (event.target.matches("[data-preflight]")) calculatePreflight();
       else if (event.target.id === "aircraft") applyAircraft(false);
       else if (event.target.matches("input")) calculate();
     });
-    document.getElementById("openWeatherBtn").addEventListener("click", openKmbtWeather);
+    document.getElementById("fetchWeatherBtn").addEventListener("click", fetchKmbtWeather);
     document.getElementById("aircraft").addEventListener("change", () => applyAircraft(true));
     document.getElementById("resetBtn").addEventListener("click", () => {
       stations.forEach(station => {
@@ -822,6 +893,7 @@
     loadPreflightState();
     renderRows();
     syncAircraftFromSupabase();
+    fetchKmbtWeather();
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./sw.js").catch(() => {});
