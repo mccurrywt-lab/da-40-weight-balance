@@ -1,9 +1,9 @@
-const CACHE_NAME = "da40-weight-balance-v5";
+const CACHE_NAME = "da40-weight-balance-v6";
 const APP_FILES = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./app-logo.svg",
+  "./mtsu-aerospace-logo.jpg",
   "./icon-180.png",
   "./icon-512.png"
 ];
