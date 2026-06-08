@@ -42,8 +42,8 @@
     section { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
     .details { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px; margin-bottom: 14px; }
     label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
-    input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; font: inherit; color: var(--ink); background: #fff; }
-    input:disabled { background: #edf1f2; color: var(--muted); cursor: not-allowed; }
+    input, select { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; font: inherit; color: var(--ink); background: #fff; }
+    input:disabled, input[readonly] { background: #edf1f2; color: var(--muted); cursor: not-allowed; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     th, td { border-bottom: 1px solid var(--line); padding: 8px 7px; text-align: right; vertical-align: middle; }
     th { color: var(--muted); font-size: 12px; text-transform: uppercase; background: var(--panel); }
@@ -236,18 +236,28 @@
         <div class="preflight-panel full">
           <h2>Takeoff and Landing Distance</h2>
           <div class="compact-grid" style="margin-bottom:10px">
+            <label>KMBT Runway<select data-preflight="selectedRunway"><option value="18">18</option><option value="36">36</option></select></label>
+            <label>Runway Heading<input data-preflight="runwayHeading" type="number" step="1" readonly placeholder="deg"></label>
+            <label>Headwind<input data-preflight="headwindComponent" type="number" step="0.1" readonly placeholder="kt"></label>
+            <label>Crosswind<input data-preflight="computedCrosswind" type="number" step="0.1" readonly placeholder="kt"></label>
             <label>OAT<input data-preflight="performanceTemp" type="number" step="1" readonly placeholder="C"></label>
             <label>Altimeter<input data-preflight="altimeter" type="number" step="0.01" readonly placeholder="inHg"></label>
             <label>Pressure Altitude<input data-preflight="pressureAltitude" type="number" step="1" readonly placeholder="ft"></label>
+            <label>Takeoff Available<input data-preflight="runway1" type="number" step="1" readonly placeholder="ft"></label>
+            <label>Landing Available<input data-preflight="runwayLdg1" type="number" step="1" readonly placeholder="ft"></label>
+            <label>Takeoff Weight<input data-preflight="takeoffWeight" type="number" step="0.1" readonly placeholder="lb"></label>
+            <label>Est. Landing Weight<input data-preflight="landingWeight" type="number" step="0.1" readonly placeholder="lb"></label>
+            <label>METAR Wind Dir<input data-preflight="windDirection" type="number" step="1" readonly placeholder="deg"></label>
           </div>
           <table class="mini-table" aria-label="Takeoff and landing distance checks">
-            <thead><tr><th>Airport</th><th>Runway Avail.</th><th>TO Ground</th><th>TO 50 ft</th><th>LDG Ground</th><th>LDG 50 ft</th><th>Margin</th></tr></thead>
+            <thead><tr><th>Airport</th><th>TO Avail.</th><th>LDG Avail.</th><th>TO Ground</th><th>TO 50 ft</th><th>LDG Ground</th><th>LDG 50 ft</th><th>Margin</th></tr></thead>
             <tbody>
-              <tr><td><input data-preflight="perfAirport1" type="text" placeholder="KMBT"></td><td><input data-preflight="runway1" type="number" min="0" step="1"></td><td><input data-preflight="toGround1" type="number" min="0" step="1"></td><td><input data-preflight="to50_1" type="number" min="0" step="1"></td><td><input data-preflight="ldgGround1" type="number" min="0" step="1"></td><td><input data-preflight="ldg50_1" type="number" min="0" step="1"></td><td id="margin1">--</td></tr>
-              <tr><td><input data-preflight="perfAirport2" type="text"></td><td><input data-preflight="runway2" type="number" min="0" step="1"></td><td><input data-preflight="toGround2" type="number" min="0" step="1"></td><td><input data-preflight="to50_2" type="number" min="0" step="1"></td><td><input data-preflight="ldgGround2" type="number" min="0" step="1"></td><td><input data-preflight="ldg50_2" type="number" min="0" step="1"></td><td id="margin2">--</td></tr>
-              <tr><td><input data-preflight="perfAirport3" type="text"></td><td><input data-preflight="runway3" type="number" min="0" step="1"></td><td><input data-preflight="toGround3" type="number" min="0" step="1"></td><td><input data-preflight="to50_3" type="number" min="0" step="1"></td><td><input data-preflight="ldgGround3" type="number" min="0" step="1"></td><td><input data-preflight="ldg50_3" type="number" min="0" step="1"></td><td id="margin3">--</td></tr>
+              <tr><td><input data-preflight="perfAirport1" type="text" placeholder="KMBT"></td><td><input data-preflight="runway1" type="number" min="0" step="1" readonly></td><td><input data-preflight="runwayLdg1" type="number" min="0" step="1" readonly></td><td><input data-preflight="toGround1" type="number" min="0" step="1"></td><td><input data-preflight="to50_1" type="number" min="0" step="1"></td><td><input data-preflight="ldgGround1" type="number" min="0" step="1"></td><td><input data-preflight="ldg50_1" type="number" min="0" step="1"></td><td id="margin1">--</td></tr>
+              <tr><td><input data-preflight="perfAirport2" type="text"></td><td><input data-preflight="runway2" type="number" min="0" step="1"></td><td><input data-preflight="runwayLdg2" type="number" min="0" step="1"></td><td><input data-preflight="toGround2" type="number" min="0" step="1"></td><td><input data-preflight="to50_2" type="number" min="0" step="1"></td><td><input data-preflight="ldgGround2" type="number" min="0" step="1"></td><td><input data-preflight="ldg50_2" type="number" min="0" step="1"></td><td id="margin2">--</td></tr>
+              <tr><td><input data-preflight="perfAirport3" type="text"></td><td><input data-preflight="runway3" type="number" min="0" step="1"></td><td><input data-preflight="runwayLdg3" type="number" min="0" step="1"></td><td><input data-preflight="toGround3" type="number" min="0" step="1"></td><td><input data-preflight="to50_3" type="number" min="0" step="1"></td><td><input data-preflight="ldgGround3" type="number" min="0" step="1"></td><td><input data-preflight="ldg50_3" type="number" min="0" step="1"></td><td id="margin3">--</td></tr>
             </tbody>
           </table>
+          <p class="note">AFM takeoff and landing distances remain manual until the DA-40 chart curves are digitized. Current weather and W&amp;B now fill the planning inputs above.</p>
         </div>
 
         <div class="preflight-panel full">
@@ -277,6 +287,10 @@
     const SUPABASE_URL = "https://cxcwclznzimisklucivy.supabase.co";
     const SUPABASE_KEY = "sb_publishable_PVrmLMvPXph1qA9I-fvqpA_7ss9zJnK";
     const WEATHER_PROXY_URL = "https://cxcwclznzimisklucivy.functions.supabase.co/kmbt-weather";
+    const kmbtRunways = {
+      "18": { heading: 182, takeoffAvailable: 4753, landingAvailable: 4753 },
+      "36": { heading: 2, takeoffAvailable: 4753, landingAvailable: 4453 }
+    };
     const fallbackAircraftIndex = {
       N607MT: { emptyWeight: 1814.00, emptyArm: 96.97, emptyMoment: 175903.58, extendedBaggage: true, modification: "Extended Baggage" },
       N623MT: { emptyWeight: 1811.00, emptyArm: 97.59, emptyMoment: 176735.49, extendedBaggage: true, modification: "Extended Baggage" },
@@ -559,7 +573,8 @@
       weightBalanceResult = {
         ready: hasAircraft,
         pass: hasAircraft && inside && !overTakeoff && !warnings.length,
-        message: !hasAircraft ? "Load a known aircraft." : inside && !overTakeoff && !warnings.length ? "Within W&B limits." : "Resolve W&B before release."
+        message: !hasAircraft ? "Load a known aircraft." : inside && !overTakeoff && !warnings.length ? "Within W&B limits." : "Resolve W&B before release.",
+        takeoffWeight: hasAircraft ? totalWeight : null
       };
       drawChart(zfwArm, zfwWeight, totalArm, totalWeight, inside, overTakeoff, hasAircraft);
       calculatePreflight();
@@ -591,9 +606,11 @@
         <circle cx="${left + width - 126}" cy="${top + 48}" r="5" fill="${inside && !overTakeoff ? "#1f6b3a" : "#9b1c1c"}"/><text x="${left + width - 114}" y="${top + 52}" font-size="12" fill="#172126">Total</text>`;
     }
     function optionalValue(name) {
-      const el = document.querySelector(`[data-preflight='${name}']`);
-      if (!el || el.value === "") return null;
-      const parsed = Number(el.value);
+      const values = Array.from(document.querySelectorAll(`[data-preflight='${name}']`))
+        .map(el => el.value)
+        .filter(value => value !== "");
+      if (!values.length) return null;
+      const parsed = Number(values[0]);
       return Number.isFinite(parsed) ? parsed : null;
     }
     function checked(name) {
@@ -665,7 +682,9 @@
     function savePreflightState() {
       const values = {};
       document.querySelectorAll("[data-preflight]").forEach(el => {
-        values[el.dataset.preflight] = el.type === "checkbox" ? el.checked : el.value;
+        if (values[el.dataset.preflight] === undefined || el.value !== "") {
+          values[el.dataset.preflight] = el.type === "checkbox" ? el.checked : el.value;
+        }
       });
       localStorage.setItem(preflightStorageKey, JSON.stringify(values));
     }
@@ -673,33 +692,78 @@
       try {
         const values = JSON.parse(localStorage.getItem(preflightStorageKey) || "{}");
         Object.entries(values).forEach(([key, value]) => {
-          const el = document.querySelector(`[data-preflight='${key}']`);
-          if (!el) return;
-          if (el.type === "checkbox") el.checked = Boolean(value);
-          else el.value = value;
+          document.querySelectorAll(`[data-preflight='${key}']`).forEach(el => {
+            if (el.type === "checkbox") el.checked = Boolean(value);
+            else el.value = value;
+          });
         });
       } catch {}
+    }
+    function angleDifference(degreesA, degreesB) {
+      return Math.abs(((degreesA - degreesB + 540) % 360) - 180);
+    }
+    function clearPreflightValue(name) {
+      document.querySelectorAll(`[data-preflight='${name}']`).forEach(el => { el.value = ""; });
+    }
+    function updatePerformanceInputs() {
+      const selected = document.querySelector("[data-preflight='selectedRunway']")?.value || "18";
+      const runway = kmbtRunways[selected] || kmbtRunways["18"];
+      setPreflightValue("perfAirport1", "KMBT");
+      setPreflightValue("runwayHeading", runway.heading);
+      setPreflightValue("runway1", runway.takeoffAvailable);
+      setPreflightValue("runwayLdg1", runway.landingAvailable);
+
+      if (Number.isFinite(weightBalanceResult.takeoffWeight)) {
+        setPreflightValue("takeoffWeight", weightBalanceResult.takeoffWeight, 1);
+        const fuelRequired = optionalValue("fuelRequired");
+        if (fuelRequired !== null) {
+          setPreflightValue("landingWeight", weightBalanceResult.takeoffWeight - fuelRequired, 1);
+        } else {
+          clearPreflightValue("landingWeight");
+        }
+      } else {
+        clearPreflightValue("takeoffWeight");
+        clearPreflightValue("landingWeight");
+      }
+
+      const windDirection = optionalValue("windDirection");
+      const windSpeed = optionalValue("windCurrent");
+      if (windDirection !== null && windSpeed !== null) {
+        const diffRadians = angleDifference(windDirection, runway.heading) * Math.PI / 180;
+        const headwind = windSpeed * Math.cos(diffRadians);
+        const crosswind = Math.abs(windSpeed * Math.sin(diffRadians));
+        setPreflightValue("headwindComponent", headwind, 1);
+        setPreflightValue("computedCrosswind", crosswind, 1);
+        setPreflightValue("xwindCurrent", crosswind, 1);
+      } else {
+        clearPreflightValue("headwindComponent");
+        clearPreflightValue("computedCrosswind");
+      }
     }
     function calculatePerformance() {
       let rowsWithData = 0;
       let failed = false;
       for (let i = 1; i <= 3; i++) {
-        const runway = optionalValue(`runway${i}`);
-        const distances = [`toGround${i}`, `to50_${i}`, `ldgGround${i}`, `ldg50_${i}`].map(optionalValue).filter(value => value !== null);
+        const takeoffAvailable = optionalValue(`runway${i}`);
+        const landingAvailable = optionalValue(`runwayLdg${i}`);
+        const takeoffDistances = [`toGround${i}`, `to50_${i}`].map(optionalValue).filter(value => value !== null);
+        const landingDistances = [`ldgGround${i}`, `ldg50_${i}`].map(optionalValue).filter(value => value !== null);
         const marginEl = document.getElementById(`margin${i}`);
-        if (runway === null && !distances.length) {
+        if (takeoffAvailable === null && landingAvailable === null && !takeoffDistances.length && !landingDistances.length) {
           marginEl.textContent = "--";
           marginEl.className = "";
           continue;
         }
         rowsWithData += 1;
-        if (runway === null || !distances.length) {
+        if ((takeoffDistances.length && takeoffAvailable === null) || (landingDistances.length && landingAvailable === null) || (!takeoffDistances.length && !landingDistances.length)) {
           marginEl.textContent = "Need data";
           marginEl.className = "caution";
           continue;
         }
-        const required = Math.max(...distances);
-        const margin = runway - required;
+        const margins = [];
+        if (takeoffDistances.length) margins.push(takeoffAvailable - Math.max(...takeoffDistances));
+        if (landingDistances.length) margins.push(landingAvailable - Math.max(...landingDistances));
+        const margin = Math.min(...margins);
         marginEl.textContent = `${fmt(margin, 0)} ft`;
         marginEl.className = margin >= 0 ? "ok" : "bad";
         if (margin < 0) failed = true;
@@ -722,6 +786,7 @@
       return { entered: rowsWithData > 0, pass: rowsWithData > 0 && !failed };
     }
     function calculatePreflight() {
+      updatePerformanceInputs();
       const approvals = [];
       const scores = [];
       const missing = [];
@@ -833,9 +898,10 @@
       return Math.round((29.92 - altimeterInHg) * 1000 + 614);
     }
     function setPreflightValue(name, value, digits = null) {
-      const el = document.querySelector(`[data-preflight='${name}']`);
-      if (!el || value === null || value === undefined || Number.isNaN(value)) return;
-      el.value = digits === null ? value : Number(value).toFixed(digits);
+      if (value === null || value === undefined || Number.isNaN(value)) return;
+      document.querySelectorAll(`[data-preflight='${name}']`).forEach(el => {
+        el.value = digits === null ? value : Number(value).toFixed(digits);
+      });
     }
     async function fetchMetarPayload() {
       const proxyResponse = await fetch(WEATHER_PROXY_URL);
@@ -855,6 +921,7 @@
         if (!metar) throw new Error("No KMBT METAR returned");
 
         const wind = Number(metar.wspd);
+        const windDirection = Number(metar.wdir);
         const visibility = parseVisibility(metar.visib);
         const ceiling = metarCeiling(metar.clouds);
         const temp = Number(metar.temp);
@@ -862,6 +929,7 @@
         const pa = pressureAltitude(altimeterInHg);
 
         if (Number.isFinite(wind)) setPreflightValue("windCurrent", wind);
+        if (Number.isFinite(windDirection)) setPreflightValue("windDirection", windDirection);
         if (visibility !== null) setPreflightValue("visCurrent", visibility);
         if (ceiling !== null) setPreflightValue("ceilingCurrent", ceiling);
         if (Number.isFinite(temp)) setPreflightValue("performanceTemp", temp);
@@ -880,6 +948,9 @@
       if (event.target.matches("[data-preflight]")) calculatePreflight();
       else if (event.target.id === "aircraft") applyAircraft(false);
       else if (event.target.matches("input")) calculate();
+    });
+    document.addEventListener("change", event => {
+      if (event.target.matches("[data-preflight]")) calculatePreflight();
     });
     document.getElementById("fetchWeatherBtn").addEventListener("click", fetchKmbtWeather);
     document.getElementById("aircraft").addEventListener("change", () => applyAircraft(true));
