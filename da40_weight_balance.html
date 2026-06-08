@@ -200,6 +200,7 @@
               <tr><td>Ceiling ft</td><td><input data-preflight="ceilingCurrent" type="number" min="0" step="100"></td><td><input data-preflight="ceilingForecast" type="number" min="0" step="100"></td><td id="ceilingScore">--</td></tr>
             </tbody>
           </table>
+          <input data-preflight="windForecastDirection" type="hidden">
           <div class="check-grid" style="margin-top:10px">
             <label><input data-preflight="icingAirmetIfr" type="checkbox"> Icing AIRMET with IFR</label>
             <label><input data-preflight="llwsAirmet" type="checkbox"> LLWS AIRMET</label>
@@ -207,7 +208,7 @@
             <label><input data-preflight="convective" type="checkbox"> Convective SIGMET/CWA</label>
             <label><input data-preflight="uuaPirep" type="checkbox"> UUA PIREP near route</label>
           </div>
-          <p class="note" id="weatherSource">Current weather auto-fills from the latest KMBT METAR. Forecast values remain manual for now.</p>
+          <p class="note" id="weatherSource">Current weather auto-fills from AWC KMBT METAR. Forecast will only auto-fill from AWC KMBT TAF if available; otherwise use AWC GFA.</p>
         </div>
 
         <div class="preflight-panel">
@@ -836,6 +837,13 @@
         clearPreflightValue("headwindComponent");
         clearPreflightValue("computedCrosswind");
       }
+      const forecastWindDirection = optionalValue("windForecastDirection");
+      const forecastWindSpeed = optionalValue("windForecast");
+      if (forecastWindSpeed !== null && forecastWindDirection !== null) {
+        const diffRadians = angleDifference(forecastWindDirection, runway.heading) * Math.PI / 180;
+        const forecastCrosswind = Math.abs(forecastWindSpeed * Math.sin(diffRadians));
+        setPreflightValue("xwindForecast", forecastCrosswind, 1);
+      }
       updateAfmPerformanceDistances();
     }
     function calculatePerformance() {
@@ -973,7 +981,13 @@
     }
     function parseVisibility(value) {
       if (typeof value === "number") return value;
-      const text = String(value || "").replace("+", "").trim();
+      const text = String(value || "").replace("+", "").replace("P", "").replace("SM", "").trim();
+      if (text.includes("/")) {
+        const [whole, fraction] = text.split(" ");
+        const [num, den] = (fraction || whole).split("/").map(Number);
+        const base = fraction ? Number(whole) : 0;
+        return Number.isFinite(num) && Number.isFinite(den) && den ? base + num / den : null;
+      }
       const parsed = Number(text);
       return Number.isFinite(parsed) ? parsed : null;
     }
@@ -1008,13 +1022,32 @@
       if (!directResponse.ok) throw new Error(`Weather request returned ${directResponse.status}`);
       return directResponse.json();
     }
+    function metarRowsFromPayload(payload) {
+      if (Array.isArray(payload)) return payload;
+      if (Array.isArray(payload?.metar)) return payload.metar;
+      if (Array.isArray(payload?.value)) return payload.value;
+      return [];
+    }
+    function applyForecastPayload(forecast) {
+      if (!forecast) return "Forecast source unchanged.";
+      if (forecast.kind === "kmbt-taf") {
+        if (Number.isFinite(Number(forecast.wind))) setPreflightValue("windForecast", Number(forecast.wind));
+        if (Number.isFinite(Number(forecast.windDirection))) setPreflightValue("windForecastDirection", Number(forecast.windDirection));
+        if (Number.isFinite(Number(forecast.visibility))) setPreflightValue("visForecast", Number(forecast.visibility), 1);
+        if (Number.isFinite(Number(forecast.ceiling))) setPreflightValue("ceilingForecast", Number(forecast.ceiling));
+        return `Forecast from ${forecast.source}.`;
+      }
+      clearPreflightValue("windForecastDirection");
+      ["windForecast", "xwindForecast", "visForecast", "ceilingForecast"].forEach(clearPreflightValue);
+      return `${forecast.source}: ${forecast.message || "Use AWC GFA for forecast values."}`;
+    }
     async function fetchKmbtWeather() {
       const source = document.getElementById("weatherSource");
       source.className = "note caution";
-      source.textContent = "Fetching latest KMBT METAR...";
+      source.textContent = "Fetching latest AWC KMBT weather...";
       try {
         const payload = await fetchMetarPayload();
-        const rows = Array.isArray(payload) ? payload : Array.isArray(payload.value) ? payload.value : [];
+        const rows = metarRowsFromPayload(payload);
         const metar = rows[0];
         if (!metar) throw new Error("No KMBT METAR returned");
 
@@ -1033,13 +1066,14 @@
         if (Number.isFinite(temp)) setPreflightValue("performanceTemp", temp);
         if (altimeterInHg !== null) setPreflightValue("altimeter", altimeterInHg, 2);
         if (pa !== null) setPreflightValue("pressureAltitude", pa);
+        const forecastNote = applyForecastPayload(payload?.forecast);
 
         source.className = "note ok";
-        source.textContent = `${metar.rawOb || "KMBT METAR"} | OAT ${Number.isFinite(temp) ? `${temp} C` : "--"} | PA ${pa !== null ? `${pa} ft` : "--"}`;
+        source.textContent = `${metar.rawOb || "KMBT METAR"} | OAT ${Number.isFinite(temp) ? `${temp} C` : "--"} | PA ${pa !== null ? `${pa} ft` : "--"} | ${forecastNote}`;
         calculatePreflight();
       } catch {
         source.className = "note bad";
-        source.textContent = "Could not fetch KMBT METAR. Enter current weather manually.";
+        source.textContent = "Could not fetch AWC KMBT weather. Enter weather manually from AWC products.";
       }
     }
     document.addEventListener("input", event => {
