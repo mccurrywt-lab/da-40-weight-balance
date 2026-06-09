@@ -233,8 +233,8 @@
           <h2>Fuel, Time, Duty</h2>
           <div class="compact-grid">
             <label>Est. Flight Time<input data-preflight="flightTime" type="number" min="0" step="0.1" placeholder="hr"></label>
-            <label>Fuel Required<input data-preflight="fuelRequired" type="number" min="0" step="0.1" placeholder="lb"></label>
-            <label>Cruise Burn<input data-preflight="cruiseBurn" type="number" min="0" step="0.1" placeholder="lb/hr"></label>
+            <label>Fuel Required (gal)<input data-preflight="fuelRequired" type="number" min="0" step="0.1" readonly placeholder="gal"></label>
+            <label>Cruise Burn (gph)<input data-preflight="cruiseBurn" type="number" min="0" step="0.1" placeholder="11"></label>
             <label>Prior 24h Instruction<input data-preflight="priorInstruction" type="number" min="0" step="0.1" placeholder="hr"></label>
             <label>Duty Day at Return<input data-preflight="dutyDay" type="number" min="0" step="0.1" placeholder="hr"></label>
             <label>Route<input data-preflight="route" type="text" placeholder="KMBT local"></label>
@@ -244,6 +244,7 @@
             <li>Instruction by end: <strong id="instructionTotal">--</strong></li>
             <li>Fuel/time/duty score: <strong id="timeFuelDutyScore">--</strong></li>
           </ul>
+          <p class="note">Fuel required uses estimated flight time x cruise burn. Standard DA-40 planning burn defaults to 11 gph.</p>
           <div class="check-grid" style="margin-top:10px">
             <label><input data-preflight="ifrVmc" type="checkbox"> IFR in VMC</label>
             <label><input data-preflight="ifrImc" type="checkbox"> IFR in IMC</label>
@@ -338,6 +339,8 @@
     const SUPABASE_URL = "https://cxcwclznzimisklucivy.supabase.co";
     const SUPABASE_KEY = "sb_publishable_PVrmLMvPXph1qA9I-fvqpA_7ss9zJnK";
     const WEATHER_PROXY_URL = "https://cxcwclznzimisklucivy.functions.supabase.co/kmbt-weather";
+    const FUEL_LB_PER_GAL = 6;
+    const STANDARD_CRUISE_BURN_GPH = 11;
     const kmbtRunways = {
       "18": { heading: 184, headingDisplay: "184", takeoffAvailable: 4753, landingAvailable: 4753 },
       "36": { heading: 4, headingDisplay: "004", takeoffAvailable: 4753, landingAvailable: 4453 }
@@ -771,6 +774,24 @@
         });
       } catch {}
     }
+    function updateFuelPlanningDefaults() {
+      const cruiseBurnEl = document.querySelector("[data-preflight='cruiseBurn']");
+      const fuelRequiredEl = document.querySelector("[data-preflight='fuelRequired']");
+      if (!cruiseBurnEl || !fuelRequiredEl) return;
+
+      let cruiseBurn = optionalValue("cruiseBurn");
+      if (cruiseBurn === null) {
+        cruiseBurn = STANDARD_CRUISE_BURN_GPH;
+        cruiseBurnEl.value = STANDARD_CRUISE_BURN_GPH;
+      } else if (cruiseBurn > 30) {
+        cruiseBurn = cruiseBurn / FUEL_LB_PER_GAL;
+        cruiseBurnEl.value = fmt(cruiseBurn, 1);
+      }
+
+      const flightTime = optionalValue("flightTime");
+      if (flightTime !== null) fuelRequiredEl.value = fmt(flightTime * cruiseBurn, 1);
+      else fuelRequiredEl.value = "";
+    }
     function angleDifference(degreesA, degreesB) {
       return Math.abs(((degreesA - degreesB + 540) % 360) - 180);
     }
@@ -865,7 +886,7 @@
         setPreflightValue("takeoffWeight", weightBalanceResult.takeoffWeight, 1);
         const fuelRequired = optionalValue("fuelRequired");
         if (fuelRequired !== null) {
-          setPreflightValue("landingWeight", weightBalanceResult.takeoffWeight - fuelRequired, 1);
+          setPreflightValue("landingWeight", weightBalanceResult.takeoffWeight - fuelRequired * FUEL_LB_PER_GAL, 1);
         } else {
           setPreflightValue("landingWeight", weightBalanceResult.takeoffWeight, 1);
         }
@@ -942,6 +963,7 @@
       return { entered: rowsWithData > 0, pass: rowsWithData > 0 && !failed };
     }
     function calculatePreflight() {
+      updateFuelPlanningDefaults();
       updatePerformanceInputs();
       const approvals = [];
       const scores = [];
@@ -975,7 +997,7 @@
       const cruiseBurn = optionalValue("cruiseBurn");
       const priorInstruction = optionalValue("priorInstruction");
       const dutyDay = optionalValue("dutyDay");
-      const totalFuel = number(document.querySelector("[data-field='fuelWeight']").value);
+      const totalFuel = number(document.querySelector("[data-field='fuelWeight']").value) / FUEL_LB_PER_GAL;
       const fuelLanding = fuelRequired === null ? null : totalFuel - fuelRequired;
       const reserveHours = fuelLanding === null || !cruiseBurn ? null : fuelLanding / cruiseBurn;
       const fuelScore = scoreFuelReserve(reserveHours);
@@ -989,7 +1011,7 @@
       if (dutyScore === null) missing.push("Duty day"); else scores.push(dutyScore);
       if (fuelScore.approval) approvals.push("Fuel remaining below 1.0 hour at cruise");
       if (instructionScore.approval) approvals.push("7+ hours instruction in prior 24-hour period by end of flight");
-      document.getElementById("fuelLanding").textContent = fuelLanding === null ? "--" : `${fmt(fuelLanding, 1)} lb`;
+      document.getElementById("fuelLanding").textContent = fuelLanding === null ? "--" : `${fmt(fuelLanding, 1)} gal`;
       document.getElementById("fuelReserve").textContent = reserveHours === null ? "--" : `${fmt(reserveHours, 2)} hr reserve`;
       document.getElementById("instructionTotal").textContent = instructionTotal === null ? "--" : `${fmt(instructionTotal, 1)} hr`;
       document.getElementById("timeFuelDutyScore").textContent = [flightTimeScore, fuelScore.score, instructionScore.score, dutyScore].map(score => score === null ? "--" : score).join(" / ");
